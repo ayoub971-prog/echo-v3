@@ -4,9 +4,9 @@ ECHO – lokaler PWA-Prototyp (Version 5)
 Was enthalten ist
 - Mobile-first Web-App mit dunklem Design und Akzent #e8a04a
 - Grosse Schaltfläche „Audio hochladen“ (mp3, wav, m4a, ogg, aac), Übungston oder eigene Quelle mit dem Mikrofon.
-  Jede Quelle hat eine Vorschau („Anhören“ mit Pause, Dateiname, Dauer, Anzahl 15-s-Stücke), erst danach „Training starten“.
+  Jede Quelle hat eine Vorschau („Anhören“ mit Pause, Dateiname, Dauer, Anzahl 5-s-Stücke), erst danach „Training starten“.
   Hochgeladene, geübte und aufgenommene Quellen laufen durch dieselbe Pipeline.
-- 15-Sekunden-Ablauf: Original hören -> nachsprechen (automatische Aufnahme) -> Signalton -> 3 s Pause -> eigene Stimme hören.
+- 5-Sekunden-Ablauf (Konstante SEGMENT_SECONDS im Quelltext): Original hören -> nachsprechen (automatische Aufnahme) -> Signalton -> 3 s Pause -> eigene Stimme hören.
   Das letzte, kürzere Stück wird passend kurz abgespielt; die Aufnahme dauert dann so lang wie das Stück (mindestens 3 s).
 - Pause/Fortsetzen: Die Zeit während der Pause zählt nicht mit. Beim Fortsetzen läuft Original bzw. deine Wiedergabe
   an derselben Stelle weiter, die Mikrofonaufnahme wird pausiert und fortgesetzt.
@@ -21,7 +21,7 @@ Was enthalten ist
 - Aufnahme-Qualität: Mikrofon mit Echo-Unterdrückung, Rauschunterdrückung, Auto-Pegel (vom Gerät, mono), danach
   Hochpass ~100 Hz, Tiefpass ~7 kHz und ein einfaches Noise-Gate (Schwelle aus dem Raumpegel der ersten 0,5 s).
   Das ist eine Signalbereinigung. Echo trennt KEINE einzelnen Personen oder Stimmen voneinander. Hintergrundgeräusche
-  und andere Stimmen im Raum können weiterhin zu hören sein. Ein volles Stück wird 15 s lang aufgenommen.
+  und andere Stimmen im Raum können weiterhin zu hören sein. Ein volles Stück wird 5 s lang aufgenommen (letztes, kürzeres Stück: so lang wie das Stück, mindestens 2 s; Rest unter 1 s wird übersprungen).
 - Vergleich nach jedem Stück (grobe Schätzung, komplett lokal und offline): Tonhöhenverlauf (Autokorrelation, 70 bis 400 Hz,
   ca. 20 Frames pro Sekunde) und Lautstärkeverlauf von Original (Akzentfarbe) und dir (Weiss) auf einem Canvas, dazu in Worten
   „Du sprichst im Schnitt etwa X Halbtöne höher/tiefer“ und „Rhythmus-Ähnlichkeit grob: gut/mittel/schwach“.
@@ -30,7 +30,7 @@ Was enthalten ist
   Grenzen: Gemessen werden nur Tonhöhe und Lautstärke-Hüllkurve, nicht Wörter, Aussprache oder Klang. Mehrere Stimmen,
   Musik oder Rauschen im Original machen die Tonhöhe unzuverlässig; Oktavfehler sind möglich. Die Halbton-Zahl vergleicht den
   Mittelwert (Median) beider Stücke, nicht Ton für Ton. Der Rhythmus vergleicht nur den Lautstärke-Verlauf (mit bis zu 1 s Versatz).
-  Der Original-Abschnitt wird nur für das aktuelle 15-s-Stück dekodiert (WAV exakt, kurze Dateien bis 3 Minuten ganz, danach
+  Der Original-Abschnitt wird nur für das aktuelle 5-s-Stück dekodiert (WAV exakt, kurze Dateien bis 3 Minuten ganz, danach
   nur lange MP3 näherungsweise; sonst „Vergleich nicht möglich“).
 - Wiedergabe deiner Stimme: Sie wird schon während der 3-s-Pause vorbereitet und startet ohne Verzögerung, mit weichem
   Ein- und Ausblenden (0,15 s / 0,3 s) und leichter Lautstärke-Angleichung. Die Dauer entspricht der echten Aufnahmelänge,
@@ -79,19 +79,19 @@ Gerätetest (Anleitung)
    Badge zeigt „Offline“.
 5. Kopfhörer anschliessen. „Übungston“ -> „Training starten“. Mikrofon erlauben.
 6. Prüfen: Pause mitten im Original -> 10 s warten -> Fortsetzen: gleiche Stelle, Zähler springt nicht.
-   Pause während „Jetzt nachsprechen“ (Taste oder Sprache) -> Fortsetzen: Aufnahme dauert insgesamt 15 s Sprechzeit.
+   Pause während „Jetzt nachsprechen“ (Taste oder Sprache) -> Fortsetzen: Aufnahme dauert insgesamt 5 s Sprechzeit.
 7. Nach dem Training: „Aufnahmen auf diesem Gerät“ -> Abspielen. App komplett schliessen, neu öffnen: Aufnahme noch da?
    ↓ lädt die Datei herunter, 🗑 löscht sie.
 8. Mit Internet (nicht Flugmodus): Sprachsteuerung einschalten, „Pause“, „Fortsetzen“, „Nächste“ sagen – auch während
    du nachsprichst. Bricht die Aufnahme ab, muss ein Hinweis erscheinen und die Aufnahme neu starten.
    Im Flugmodus geht nur die Tastenbedienung.
-8b. Aufnahme prüfen: Klingt sie sauber? Zu leise/zu dumpf? Ist 15 s lang? Beginnt die Wiedergabe sofort und weich?
+8b. Aufnahme prüfen: Klingt sie sauber? Zu leise/zu dumpf? Ist 5 s lang? Beginnt die Wiedergabe sofort und weich?
 9. Bildschirmsperre: Training 5 Minuten laufen lassen – bleibt der Bildschirm an? (Wake Lock; nicht auf jedem Gerät garantiert.)
 10. Sperrbildschirm/App-Wechsel während des Trainings: Audio und Timer können vom System angehalten werden. Bitte notieren, was passiert.
 
 Was automatisiert getestet wurde (Chromium, Fake-Mikrofon, lokaler Server) und was nicht
 - Getestet: Service-Worker-Cache, Offline-Neuladen, Schriften/Icons/Manifest aus dem Cache, keine externen Requests,
-  Pause/Fortsetzen (Timer, Audio, Recorder), Aufnahme (volle 15 s), IndexedDB (speichern, neu laden, abspielen,
+  Pause/Fortsetzen (Timer, Audio, Recorder), Aufnahme (volles 5-s-Stück), IndexedDB (speichern, neu laden, abspielen,
   herunterladen, löschen), Sprachsteuerung mit simulierter Spracherkennung auch während der Aufnahme, Rückfall bei
   simuliertem Abbruch, Filterkette (Messung per OfflineAudioContext), Noise-Gate-Logik, Fade-Verlauf, Normalisierung,
   kürzeres letztes Stück.
@@ -103,3 +103,35 @@ Was automatisiert getestet wurde (Chromium, Fake-Mikrofon, lokaler Server) und w
 Nächste Schritte für eine robuste Version
 - Tests auf mehreren iPhones und Samsung-Geräten
 - Optional native Wrapper (Capacitor) für zuverlässigere Gerätesperre-/Audio-Verwaltung
+
+
+==== NEU in v6: Eigene Stimme wird zuverlässig abgespielt (iPhone) ====
+Stücke sind jetzt 5 Sekunden lang (zentrale Konstante SEGMENT_SECONDS=5 in index.html; Übungston = 2 Stücke = 10 s).
+
+Wahrscheinliche Ursache (Vermutung, auf dem Handy des Users nicht reproduzierbar):
+ 1. iOS zählt nur click/touchend als Geste fürs Entsperren von Audio, nicht pointerdown/touchstart. Der AudioContext blieb
+    deshalb "suspended", und das <audio>-Element für die eigene Stimme war nie freigeschaltet. Das Original (Element, direkt
+    beim Tippen gestartet) lief, die eigene Stimme (Web Audio / automatisches play()) blieb still, und der Fehler wurde verschluckt.
+ 2. Web Audio wird auf dem iPhone vom Stumm-Schalter lautlos geschaltet, <audio>-Elemente nicht.
+ 3. Nach getUserMedia stellt iOS die Audio-Session auf Aufnahme um (leise/Hörer); der AudioContext kann "interrupted" sein.
+
+Änderungen:
+ - Entsperrung bei jedem click/touchend/pointerup: AudioContext.resume() plus stilles Abspielen auf dem reservierten <audio>-Element.
+ - Nach der Aufnahme sofort alle Mikro-Tracks und die Filterkette (inkl. MediaStreamDestination) stoppen und trennen.
+ - navigator.audioSession.type: "play-and-record" während der Aufnahme, danach "playback" (falls vorhanden).
+ - Vor der Wiedergabe resume() erzwingen und bis zu 2,5 s auf "running" warten (auch bei "interrupted").
+ - Auf iPhone/iPad spielt die eigene Stimme als <audio> mit Blob-URL; Lautstärke-Angleichung und Ein-/Ausblenden sind fest in die
+   WAV eingerechnet. Auf anderen Geräten Web Audio, bei Fehler Rückfall auf <audio>.
+ - Schlägt alles fehl (z. B. NotAllowedError): sichtbare Meldung "Wiedergabe nicht möglich: ..." und grosser Knopf "Deine Stimme anhören".
+ - Nach jedem Stück: Knöpfe "Original anhören", "Meine Stimme anhören", "Beide nacheinander" und Schalter
+   "Original danach wiederholen" (Standard AN; spielt nach der eigenen Stimme das Original noch einmal).
+ - Lautstärke: Ziel-RMS etwa -18 dBFS, Verstärkung 0,5 bis 8, nie über Spitze 0,95. Hinweis auf Lautstärke und Stumm-Schalter.
+
+Nur auf einem echten iPhone prüfbar: ob die Wiedergabe nach der 3-s-Pause von selbst startet, ob der Stumm-Schalter eine Rolle spielt,
+Lautsprecher statt Hörer, Verhalten bei Anrufen/Siri (Unterbrechung), Safari-Version (audioSession ab iOS 16.4).
+Feste Bedienleiste unten im Trainingsbildschirm (auch auf kleinen Handys ohne Scrollen sichtbar):
+ - gross "Weiter (nächste 5 Sekunden)" (im letzten Stück "Fertig"), jederzeit aktiv, springt sofort zum nächsten Stück, auch mitten in der Runde
+ - daneben "Wiederholen" und "Pause/Fortsetzen"
+ - Sprachbefehl "Weiter" = nächstes Stück (ist die Runde pausiert, setzt "Weiter" fort; während deiner Aufnahme wird "Weiter" per Sprache
+   ignoriert, damit ein gesprochenes "weiter" im Text die Runde nicht abbricht; die Taste geht immer).
+Test (Mac/Linux): node test/v6.js (Playwright, simulierte Zustände suspended/interrupted, NotAllowedError, Dekodierfehler, Tracks gestoppt).
