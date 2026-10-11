@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101214"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Echo – Deine Stimme. Dein Echo.</title>
+<style>
+@font-face{font-family:'Fraunces';font-style:normal;font-weight:500 700;font-display:swap;src:url(fonts/Fraunces-latin.woff2) format('woff2')}
+@font-face{font-family:'Outfit';font-style:normal;font-weight:400 700;font-display:swap;src:url(fonts/Outfit-latin.woff2) format('woff2')}
+:root{color-scheme:dark;--bg:#101214;--panel:#191c1f;--panel2:#202428;--text:#f6f0e7;--muted:#b7bdc4;--accent:#e8a04a;--line:#33383d}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1b1d1e,var(--bg) 60%);color:var(--text);font:16px Outfit,system-ui,sans-serif;min-height:100dvh}button,input{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:13px 18px;background:var(--panel2);color:var(--text);font-weight:600}button.primary{background:var(--accent);border-color:var(--accent);color:#17130e}button:disabled{opacity:.4;cursor:not-allowed}.app{max-width:680px;margin:auto;padding:env(safe-area-inset-top) 18px calc(22px + env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;padding:20px 0}.brand{font:700 32px Fraunces,serif;color:var(--accent);letter-spacing:-1px}.pill{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:6px 10px;border-radius:999px}.hero{text-align:center;padding:26px 4px 18px}.hero h1{font:600 clamp(42px,12vw,66px) Fraunces,serif;margin:18px 0 8px}.hero p{color:var(--muted);line-height:1.55}.wave{font-size:32px;color:var(--accent);letter-spacing:3px;margin:12px 0}.card{background:linear-gradient(145deg,#1c2023,#151719);border:1px solid #2b3034;border-radius:22px;padding:18px;margin:14px 0}.card h2{font:600 24px Fraunces,serif;margin:0 0 12px}.choice{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin:10px 0;border-radius:16px;padding:16px}.choice .ico{color:var(--accent);font-size:24px;width:30px}.choice small{display:block;color:var(--muted);font-weight:400;margin-top:4px}.field{display:block;color:var(--muted);font-size:13px;margin:12px 0 6px}input[type=file]{width:100%;font-size:13px;color:var(--muted)}.hidden{display:none!important}.center{text-align:center}.status{color:var(--muted);font-size:14px;line-height:1.5;min-height:22px}.timer{font:600 54px Fraunces,serif;color:var(--accent);margin:10px}.progress{height:7px;background:#373b3f;border-radius:20px;overflow:hidden;margin:14px 0}.progress span{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.controls button{min-height:52px}.controls .wide{grid-column:1/-1}.mainbtn{width:100%;margin-top:14px;min-height:54px}.meter{font-size:30px;letter-spacing:3px;color:var(--accent);min-height:45px;overflow:hidden}.tiny{font-size:12px;color:var(--muted);line-height:1.5}.footer{text-align:center;color:#7e858b;font-size:12px;padding:24px 0 6px}.check{color:var(--accent)}.fileinfo{font-size:13px;color:var(--muted);overflow-wrap:anywhere}.roundlabel{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
+</style></head>
+<body><main class="app">
+<header class="top"><div class="brand">Echo</div><span class="pill" id="offlineBadge">Offline bereit</span></header>
+<section id="home">
+<div class="hero"><div class="wave">▁▃▆█▅▂▇</div><h1>Deine Stimme.<br>Dein Echo.</h1><p>Hören. Nachsprechen. Vergleichen.<br>Einfach, privat und direkt auf deinem Gerät.</p></div>
+<div class="card"><h2>Quelle wählen</h2>
+<label class="field" for="audioFile">Audiodatei (auch grosse Dateien)</label><input id="audioFile" type="file" accept="audio/*">
+<div id="fileInfo" class="fileinfo">Oder starte mit deinem Mikrofon oder einem Übungston.</div>
+<button class="choice" id="recordSource"><span class="ico">🎙</span><span>Eigene Aufnahme<small>Eine Quelle direkt aufnehmen</small></span></button>
+<button class="choice" id="practice"><span class="ico">♫</span><span>Übungston<small>Zum Testen des Ablaufs</small></span></button>
+<p class="tiny headphones" style="margin:16px 0 0;padding:10px 12px;border:1px solid var(--line);border-radius:14px">🎧 <b>Bitte Kopfhörer verwenden.</b> Sonst hört das Mikrofon das Original mit und deine Aufnahme wird verfälscht.</p><button class="primary mainbtn" id="start" disabled>Training starten →</button>
+</div>
+<div class="card"><h2>So läuft eine Runde</h2><p class="status">15 s Original → 15 s Aufnahme → Signalton → 3 s Pause → deine Stimme hören.</p><p class="tiny">Tipp: Kopfhörer verwenden. Sprachbefehle sind optional – alle Tasten funktionieren immer. Audio und Aufnahmen bleiben auf deinem Gerät.</p></div>
+<div class="card"><h2>Aufnahmen auf diesem Gerät</h2><div id="homeList" class="status">Noch keine Aufnahmen.</div></div>
+</section>
+<section id="train" class="hidden">
+<div class="card center"><div class="roundlabel"><span id="partLabel">Stück 1</span><span id="partLen">15 Sekunden</span></div><h2 id="stageTitle">Bereit?</h2><div class="meter" id="meter">▁▃▅▇▅▂</div><div class="timer" id="timer">15</div><div class="progress"><span id="bar"></span></div><p class="status" id="status">Drücke Start, wenn du bereit bist.</p><audio id="sourceAudio" playsinline></audio><audio id="myPlayback" playsinline></audio></div>
+<div class="card"><h2>Freihändig steuern</h2><p class="status">Sage während der Runde: <b>„Pause“</b>, <b>„Fortsetzen“</b>, <b>„Wiederholen“</b> oder <b>„Nächste“</b>. Sie bleibt auch während deiner Aufnahme aktiv. Stört sie auf deinem Gerät die Aufnahme, schaltet Echo sie dort automatisch aus – <b>Pause</b> per Taste geht immer.</p><button id="voiceBtn" class="primary mainbtn">🎙 Sprachsteuerung einschalten</button><p class="tiny" id="voiceStatus">Optional. Die Tasten funktionieren immer.</p></div>
+<div class="controls"><button id="pauseBtn">Ⅱ Pause</button><button id="repeatBtn">⟳ Wiederholen</button><button id="nextBtn" class="primary">Nächste →</button><button id="stopBtn">Training beenden</button><button id="startRound" class="primary wide">Runde starten</button></div>
+</section>
+<section id="done" class="hidden"><div class="hero"><div class="wave">✓</div><h1>Gut gemacht.</h1><p id="doneText">Training abgeschlossen.</p><button class="primary mainbtn" id="backHome">Zur Startseite</button></div><div class="card"><h2>Aufnahmen auf diesem Gerät</h2><div id="storageWarn" class="tiny hidden"></div><div id="savedList" class="status">Deine Aufnahmen erscheinen hier.</div></div></section>
+<footer class="footer">Echo · Mobil · Offline · Deine Daten bleiben bei dir</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const SpeechRecognitionAPI=window.SpeechRecognition||window.webkitSpeechRecognition;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let sourceFile=null,sourceUrl=null,sourceDuration=0,currentPart=0,parts=1,segLen=15,recordingLen=15,
+    stageToken=0,paused=false,running=false,sessionActive=false,micBusy=false,voiceHold=false,recVoiceOK=true,recNotice='',holdTimer=null,
+    activeCtl=null,recorder=null,recTrack=null,chainInfo=null,gateInfo=null,voicePrep=null,playNode=null,fadeInfo=null,actx=null,
+    recordingBlob=null,wakeLock=null,statusText='',sessionCount=0,saveChain=Promise.resolve(),
+    voiceEnabled=false,recog=null,recogTimer=null,recogFatal=false,recogNetErr=false,restartTimes=[],lastCmdAt=0,srcRec=null;
+try{voiceEnabled=!!SpeechRecognitionAPI&&localStorage.getItem('echo.voice')==='1'}catch(e){}
+const sourceAudio=$('sourceAudio'),myPlayback=$('myPlayback'),listPlayer=new Audio();
+
+/* ---------- Anzeige-Helfer ---------- */
+function show(id){['home','train','done'].forEach(x=>$(x).classList.toggle('hidden',x!==id));syncVoice()}
+function setStatus(t){statusText=t;$('status').textContent=t}
+function setStage(t){$('stageTitle').textContent=t}
+function setTimer(n,total=15){$('timer').textContent=String(Math.max(0,Math.ceil(n)));$('bar').style.width=(Math.max(0,Math.min(total,total-n))/total*100)+'%'}
+function vibrate(){try{navigator.vibrate?.(100)}catch(e){}}
+/* ---------- Gemeinsamer AudioContext (beim ersten Tippen freigeschaltet, wichtig für iOS) ---------- */
+function getCtx(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!actx||actx.state==='closed')actx=new C({latencyHint:'interactive'});return actx}catch(e){return null}}
+function primeAudio(){const c=getCtx();if(c&&c.state==='suspended'){try{c.resume().catch(()=>{})}catch(e){}}}
+['pointerdown','touchstart','keydown'].forEach(ev=>document.addEventListener(ev,primeAudio,{passive:true}));
+function beep(){try{const c=getCtx();if(!c||c.state!=='running')return;const o=c.createOscillator(),g=c.createGain(),t=c.currentTime;o.frequency.value=880;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.07,t+.012);g.gain.setValueAtTime(.07,t+.13);g.gain.linearRampToValueAtTime(0,t+.16);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.17)}catch(e){}}
+function formatTime(s){if(!isFinite(s))return'—';return `${Math.floor(s/60).toString().padStart(2,'0')}:${Math.floor(s%60).toString().padStart(2,'0')}`}
+function pickMime(){return['audio/webm;codecs=opus','audio/mp4','audio/webm'].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported?.(m))}
+function extFor(type){return /mp4|aac|m4a/.test(type||'')?'m4a':/ogg/.test(type||'')?'ogg':/wav/.test(type||'')?'wav':'webm'}
+
+/* ---------- Bildschirm wachhalten: ganze Trainingssitzung ---------- */
+async function keepAwake(){if(!('wakeLock'in navigator)||wakeLock)return;try{wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener?.('release',()=>{wakeLock=null})}catch(e){wakeLock=null}}
+function releaseAwake(){try{wakeLock?.release?.()}catch(e){}wakeLock=null}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&sessionActive)keepAwake();syncVoice()});
+
+/* ---------- Quelle ---------- */
+function setSource(file,kind='file',known=0){
+  sourceFile=file;$('start').disabled=true;sourceDuration=0;
+  if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl=URL.createObjectURL(file);
+  const a=sourceAudio;a.preload='metadata';a.onerror=()=>{$('fileInfo').textContent='Diese Audiodatei kann der Browser nicht abspielen. Bitte MP3, M4A, WAV oder AAC testen.'};
+  a.onloadedmetadata=()=>{a.onloadedmetadata=null;if(isFinite(a.duration)&&a.duration>0)ready(a.duration);else fixDuration(known)};
+  a.src=sourceUrl;
+  function ready(d){
+    if(!d||!isFinite(d)){$('fileInfo').textContent='Die Länge dieser Datei konnte nicht ermittelt werden.';return}
+    sourceDuration=d;parts=Math.max(1,Math.ceil(d/15));
+    if(parts>1&&d-(parts-1)*15<1)parts--; // winziger Rest am Ende wird übersprungen
+    $('fileInfo').textContent=`${file.name||'Aufnahme'} · ${formatTime(d)} · ${parts} Stücke`;$('start').disabled=false}
+  // MediaRecorder-WebM meldet in Chrome duration=Infinity: ans Ende springen, damit die echte Länge berechnet wird
+  function fixDuration(known){let done=false;const fin=()=>{if(done)return;done=true;a.removeEventListener('timeupdate',onT);const d=isFinite(a.duration)?a.duration:known;try{a.currentTime=0}catch(e){}ready(d)};const onT=()=>{if(isFinite(a.duration))fin()};a.addEventListener('timeupdate',onT);try{a.currentTime=1e7}catch(e){}setTimeout(fin,2500)}
+}
+$('audioFile').addEventListener('change',e=>{let f=e.target.files?.[0];if(f)setSource(f)});
+$('practice').onclick=()=>{let sr=22050,dur=30,buf=new Float32Array(sr*dur);for(let i=0;i<buf.length;i++){let t=i/sr;buf[i]=.16*Math.sin(2*Math.PI*(220+45*Math.sin(t*2))*t)*(Math.sin(t*2)>0?1:.5)}let wav=makeWav(buf,sr);setSource(new File([wav],'Uebungston.wav',{type:'audio/wav'}),'practice',dur)};
+function makeWav(samples,sr){let b=new ArrayBuffer(44+samples.length*2),v=new DataView(b);function s(o,t){for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))}s(0,'RIFF');v.setUint32(4,36+samples.length*2,true);s(8,'WAVE');s(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);s(36,'data');v.setUint32(40,samples.length*2,true);for(let i=0,o=44;i<samples.length;i++,o+=2){let x=Math.max(-1,Math.min(1,samples[i]));v.setInt16(o,x<0?x*32768:x*32767,true)}return b}
+
+/* Eigene Quelle aufnehmen: ein Knopf, der sauber zwischen Start und Stopp wechselt */
+const recordSourceHTML=$('recordSource').innerHTML;
+$('recordSource').onclick=async()=>{
+  if(srcRec){if(srcRec.state!=='inactive')srcRec.stop();return}
+  let st=null;
+  try{
+    st=await navigator.mediaDevices.getUserMedia({audio:true});
+    const mime=pickMime(),rs=new MediaRecorder(st,mime?{mimeType:mime}:undefined),cs=[],t0=Date.now();
+    rs.ondataavailable=e=>{if(e.data&&e.data.size)cs.push(e.data)};
+    rs.onstop=()=>{
+      st.getTracks().forEach(t=>t.stop());srcRec=null;$('recordSource').innerHTML=recordSourceHTML;
+      const type=rs.mimeType||mime||'audio/webm',blob=new Blob(cs,{type});
+      if(!blob.size){$('fileInfo').textContent='Die Aufnahme war leer. Bitte erneut versuchen.';return}
+      setSource(new File([blob],'Eigene-Quelle.'+extFor(type),{type}),'mic',(Date.now()-t0)/1000)};
+    srcRec=rs;rs.start();
+    $('fileInfo').textContent='Aufnahme läuft – tippe auf „Aufnahme beenden“.';
+    $('recordSource').innerHTML='<span class="ico">■</span><span>Aufnahme beenden<small>Quelle speichern</small></span>';
+  }catch(e){st?.getTracks().forEach(t=>t.stop());srcRec=null;$('recordSource').innerHTML=recordSourceHTML;$('fileInfo').textContent='Mikrofon nicht verfügbar. Bitte Berechtigung prüfen.'}
+};
+
+/* ---------- Pausierbarer Timer ---------- */
+// Zählt nur Zeit, in der nicht pausiert ist (Restzeit wird mitgeführt). sig.abort bricht die Stufe von aussen ab.
+function stage(ms,token,title,sig){
+  setStage(title);const total=ms/1000;setTimer(total,total);
+  return new Promise(resolve=>{
+    let remaining=ms,last=performance.now();
+    (function tick(){
+      if(token!==stageToken||sig?.abort){resolve(false);return}
+      const now=performance.now();if(!paused)remaining-=now-last;last=now;
+      setTimer(remaining/1000,total);
+      if(remaining<=0){resolve(true);return}
+      setTimeout(tick,100);
+    })();
+  });
+}
+function elCtl(el){return{el,pause:()=>el.pause(),resume:()=>playMedia(el)}}
+function playMedia(el){const p=el.play();if(p&&p.then)p.then(()=>{if(paused||activeCtl?.el!==el)el.pause()}).catch(()=>setStatus('Bitte einmal auf den Bildschirm tippen, um Audio zu erlauben.'))}
+function setPauseUI(){$('pauseBtn').textContent=paused?'▶ Fortsetzen':'Ⅱ Pause';$('pauseBtn').disabled=!running}
+function setPaused(p){
+  if(!running||p===paused)return;
+  paused=p;
+  if(p){
+    try{activeCtl?.pause()}catch(e){}
+    if(recorder&&recorder.state==='recording'){try{recorder.pause()}catch(e){}}
+    $('status').textContent=(micBusy&&!recVoiceOK)?'Pausiert. Drücke „Fortsetzen“ – Sprachsteuerung ist während der Aufnahme aus.':'Pausiert. Sage oder drücke „Fortsetzen“.';
+  }else{
+    if(recorder&&recorder.state==='paused'){try{recorder.resume()}catch(e){}}
+    try{activeCtl?.resume()}catch(e){}
+    $('status').textContent=statusText;
+  }
+  setPauseUI();syncVoice(p?0:300);
+}
+function stopMyVoice(){try{playNode?.src.stop()}catch(e){}try{playNode?.src.disconnect();playNode?.g.disconnect()}catch(e){}playNode=null;if(playFadeTimer){clearInterval(playFadeTimer);playFadeTimer=null}}
+let playFadeTimer=null;
+function cancelRound(){stageToken++;running=false;paused=false;activeCtl=null;sourceAudio.pause();myPlayback.pause();stopMyVoice();if(actx&&actx.state==='suspended'){try{actx.resume().catch(()=>{})}catch(e){}}setPauseUI()}
+/* ---------- Ablauf einer Runde ---------- */
+async function playSource(token){
+  const start=currentPart*15,end=Math.min(sourceDuration,start+15);
+  if(start>=sourceDuration){finish();return false}
+  segLen=Math.max(1,end-start);$('partLen').textContent=Math.round(segLen)+' Sekunden';
+  try{sourceAudio.currentTime=start}catch(e){}
+  activeCtl=elCtl(sourceAudio);setStatus('Jetzt gut zuhören. Danach startet die Aufnahme automatisch.');
+  playMedia(sourceAudio);
+  const ok=await stage(segLen*1000,token,'Original hören');
+  sourceAudio.pause();activeCtl=null;return ok;
+}
+function releaseStream(st){try{st?.getTracks().forEach(t=>t.stop())}catch(e){}}
+
+/* ---------- Aufnahme-Filterkette ---------- */
+// Hochpass ~100 Hz (Trittschall/Brummen), Tiefpass ~7 kHz (Rauschen/Zischen), danach ein einfaches adaptives Noise-Gate.
+// Das ist eine Signalbereinigung – es werden KEINE einzelnen Personen oder Stimmen getrennt.
+const HP_HZ=100,LP_HZ=7000,GATE_CAL_MS=500,GATE_HOLD_MS=250,GATE_CLOSED_GAIN=0.15;
+function makeFilterChain(c){
+  const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=HP_HZ;hp.Q.value=0.707;
+  const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=LP_HZ;lp.Q.value=0.707;
+  hp.connect(lp);return{input:hp,output:lp,hp,lp};
+}
+function newGate(){return{t0:null,cal:[],floor:0.003,thr:0.006,calibrated:false,open:true,lastAbove:0}}
+// Reine Funktion: Pegel (RMS) -> Ziel-Gain. Raumpegel = 30. Perzentil der Pegel in den ersten 0,5 s (Gate bleibt dabei offen).
+function gateUpdate(g,level,now){
+  if(g.t0===null)g.t0=now;
+  if(!g.calibrated){
+    g.cal.push(level);
+    if(now-g.t0>=GATE_CAL_MS){const s=g.cal.slice().sort((a,b)=>a-b);g.floor=Math.min(0.02,Math.max(0.0005,s[Math.floor(s.length*0.3)]||0));g.calibrated=true;g.lastAbove=now}
+    g.thr=Math.max(0.004,g.floor*2.5);g.open=true;return 1;
+  }
+  if(level<g.thr)g.floor=Math.min(0.02,g.floor*0.995+level*0.005);   // Raumpegel langsam nachführen
+  g.thr=Math.max(0.004,g.floor*2.5);
+  if(level>g.thr){g.lastAbove=now;g.open=true}else if(now-g.lastAbove>GATE_HOLD_MS)g.open=false;
+  return g.open?1:GATE_CLOSED_GAIN;
+}
+// Mikrofon -> Hochpass -> Tiefpass -> Gate -> MediaStreamDestination -> MediaRecorder. Gibt null zurück, wenn Web Audio nicht geht.
+async function buildRecordChain(st){
+  const c=getCtx();if(!c||!c.createMediaStreamDestination)return null;
+  if(c.state!=='running'){try{await Promise.race([c.resume(),sleep(600)])}catch(e){}}
+  if(c.state!=='running')return null;
+  const src=c.createMediaStreamSource(st),f=makeFilterChain(c),gate=c.createGain(),an=c.createAnalyser(),dest=c.createMediaStreamDestination();
+  an.fftSize=1024;src.connect(f.input);f.output.connect(gate);f.output.connect(an);gate.connect(dest);
+  const g=newGate(),buf=new Float32Array(an.fftSize);let cur=1;
+  gateInfo=g;
+  const iv=setInterval(()=>{
+    an.getFloatTimeDomainData(buf);let s=0;for(let i=0;i<buf.length;i++)s+=buf[i]*buf[i];
+    const target=gateUpdate(g,Math.sqrt(s/buf.length),performance.now());
+    if(target!==cur){gate.gain.setTargetAtTime(target,c.currentTime,target>cur?0.01:0.12);cur=target}
+  },25);
+  chainInfo={hp:f.hp.type+'@'+f.hp.frequency.value,lp:f.lp.type+'@'+f.lp.frequency.value};
+  return{stream:dest.stream,close(){clearInterval(iv);try{src.disconnect();f.hp.disconnect();f.lp.disconnect();gate.disconnect();an.disconnect()}catch(e){}}};
+}
+
+/* ---------- Spracherkennung während der Aufnahme: Verzögerung + Rückfall ---------- */
+const REC_VOICE_DELAY_MS=700;
+function recHint(){return recVoiceOK?'Sprachsteuerung bleibt aktiv – bei Störungen Pause per Taste.':'Erkennung während der Aufnahme aus – nutze Pause per Taste.'}
+async function recordAttempt(token,recLen){
+  const sig={abort:false,reason:''};
+  const flag=r=>{if(!sig.abort){sig.abort=true;sig.reason=r}};
+  micBusy=true;voiceHold=true;syncVoice();await stopRecognition();
+  if(token!==stageToken){micBusy=false;voiceHold=false;return{status:'cancel'}}
+  await sleep(250);
+  let st=null,chain=null,rec=null,stopped=null,cs=[],ourStop=false,muteTimer=null;
+  const cleanup=()=>{clearTimeout(muteTimer);try{if(recTrack){recTrack.onended=recTrack.onmute=recTrack.onunmute=null}}catch(e){}clearTimeout(holdTimer);chain?.close();releaseStream(st);recorder=null;recTrack=null;micBusy=false;voiceHold=false};
+  try{
+    st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
+    if(token!==stageToken){cleanup();return{status:'cancel'}}
+    const track=st.getAudioTracks()[0];recTrack=track;
+    try{chainInfo=null;chain=await buildRecordChain(st)}catch(e){chain=null}
+    if(!chain){chainInfo={hp:'aus',lp:'aus'};gateInfo=null}
+    const mime=pickMime();rec=new MediaRecorder(chain?chain.stream:st,mime?{mimeType:mime}:undefined);
+    rec.ondataavailable=e=>{if(e.data&&e.data.size)cs.push(e.data)};
+    stopped=new Promise(r=>{rec.onstop=()=>{if(!ourStop)flag('Recorder stoppte vorzeitig');r()}});
+    rec.onerror=()=>flag('Recorder-Fehler');
+    track.onended=()=>flag('Mikrofon-Spur beendet');
+    track.onmute=()=>{clearTimeout(muteTimer);muteTimer=setTimeout(()=>flag('Mikrofon stumm geschaltet'),1500)};
+    track.onunmute=()=>clearTimeout(muteTimer);
+    recorder=rec;rec.start();if(paused){try{rec.pause()}catch(e){}}
+    // Spracherkennung erst kurz NACH dem Start der Aufnahme wieder starten
+    if(recVoiceOK)holdTimer=setTimeout(()=>{voiceHold=false;syncVoice()},REC_VOICE_DELAY_MS);
+  }catch(e){
+    cleanup();return{status:'micerr'}
+  }
+  const ok=await stage(recLen*1000,token,'Jetzt nachsprechen',sig);
+  clearTimeout(holdTimer);
+  ourStop=true;if(rec.state!=='inactive'){try{rec.stop()}catch(e){}}
+  await Promise.race([stopped,sleep(2000)]);
+  const mt=rec.mimeType||'audio/webm';
+  cleanup();
+  if(token!==stageToken)return{status:'cancel'};
+  if(sig.abort)return{status:'early',reason:sig.reason};
+  if(!ok)return{status:'cancel'};
+  const blob=new Blob(cs,{type:mt});
+  if(blob.size<1000)return{status:'early',reason:'Aufnahme leer'};
+  return{status:'ok',blob};
+}
+async function recordSelf(token){
+  const recLen=Math.min(15,Math.max(3,segLen)); // volles Stück: 15 s; letztes, kürzeres Stück: so lang wie das Stück (mind. 3 s)
+  for(let attempt=0;attempt<2;attempt++){
+    setStage('Jetzt nachsprechen');
+    setStatus('Die Aufnahme stoppt automatisch.'+(voiceEnabled?' '+recHint():'')+(recNotice?' '+recNotice:''));
+    const r=await recordAttempt(token,recLen);
+    if(token!==stageToken||r.status==='cancel'){syncVoice(300);return false}
+    if(r.status==='micerr'){setStage('Mikrofon benötigt');setStatus('Mikrofonzugriff fehlt. Erlaube Echo den Zugriff und starte die Runde erneut.');syncVoice();return false}
+    if(r.status==='early'){
+      if(attempt===0){
+        if(recVoiceOK){recVoiceOK=false;recNotice='Die Aufnahme wurde unterbrochen ('+r.reason+'). Erkennung während der Aufnahme ist jetzt aus, die Aufnahme startet neu. Pause bitte per Taste.'}
+        else recNotice='Die Aufnahme wurde unterbrochen ('+r.reason+') und startet neu.';
+        setStatus(recNotice);updateVoiceHint();await sleep(1200);if(token!==stageToken)return false;continue;
+      }
+      setStage('Aufnahme unterbrochen');setStatus('Die Aufnahme wurde erneut unterbrochen ('+r.reason+'). Bitte „Wiederholen“ drücken.');syncVoice();return false;
+    }
+    recordingBlob=r.blob;recordingLen=recLen;
+    voicePrep=prepareMyVoice(r.blob,recLen);       // Wiedergabe schon während der Pause vorbereiten
+    sessionCount++;queueSave(r.blob,currentPart+1);
+    beep();vibrate();setStatus('Signalton. Drei Sekunden Pause …');
+    syncVoice(400);
+    return await stage(3000,token,'Pause');
+  }
+  return false;
+}
+
+/* ---------- Eigene Stimme: Normalisierung, Fade, bereit gehalten ---------- */
+const FADE_IN_S=0.15,FADE_OUT_S=0.3,NORM_TARGET_RMS=0.1;
+function scheduleFade(param,t0,dur,norm){
+  const fi=Math.min(FADE_IN_S,dur/3),fo=Math.min(FADE_OUT_S,dur/3);
+  param.cancelScheduledValues(t0);param.setValueAtTime(0,t0);param.linearRampToValueAtTime(norm,t0+fi);
+  param.setValueAtTime(norm,t0+dur-fo);param.linearRampToValueAtTime(0,t0+dur);
+  return{fi,fo};
+}
+// leichte Normalisierung: Ziel-RMS über die aktiven Stellen, Verstärkung 0,5…4, ohne zu übersteuern
+function computeNorm(buf){
+  const d=buf.getChannelData(0);let peak=0,s=0,n=0,sa=0,na=0;
+  for(let i=0;i<d.length;i+=2){const a=Math.abs(d[i]);if(a>peak)peak=a;sa+=a*a;na++;if(a>0.01){s+=a*a;n++}}
+  if(peak<1e-4)return 1;
+  const rms=n>50?Math.sqrt(s/n):Math.sqrt(sa/Math.max(1,na));
+  let g=NORM_TARGET_RMS/Math.max(rms,1e-5);g=Math.max(0.5,Math.min(4,g));
+  return Math.min(g,0.9/peak);
+}
+function prepareMyVoice(blob,recLen){
+  if(voicePrep?.url)URL.revokeObjectURL(voicePrep.url);
+  const p={blob,url:URL.createObjectURL(blob),buffer:null,norm:1,dur:recLen};
+  myPlayback.src=p.url;myPlayback.preload='auto';try{myPlayback.load()}catch(e){}
+  p.ready=(async()=>{
+    try{
+      const c=getCtx();if(!c)return;const ab=await blob.arrayBuffer();
+      const buf=await new Promise((res,rej)=>{const r=c.decodeAudioData(ab,res,rej);if(r&&r.catch)r.catch(rej)});
+      p.buffer=buf;p.norm=computeNorm(buf);p.dur=buf.duration||recLen;
+    }catch(e){p.buffer=null}
+  })();
+  return p;
+}
+async function playMy(token){
+  const p=voicePrep;if(!p)return true;
+  await Promise.race([p.ready,sleep(2500)]);
+  if(token!==stageToken)return false;
+  const c=getCtx();
+  if(p.buffer&&c&&c.state!=='running'){try{await Promise.race([c.resume(),sleep(500)])}catch(e){}}
+  setStatus('Höre dir deine Aufnahme an.');
+  if(p.buffer&&c&&c.state==='running'){
+    const dur=p.buffer.duration,src=c.createBufferSource(),g=c.createGain();
+    src.buffer=p.buffer;src.connect(g);g.connect(c.destination);
+    const t0=c.currentTime+0.03;scheduleFade(g.gain,t0,dur,p.norm);src.start(t0);
+    playNode={src,g};fadeInfo={mode:'webaudio',dur,norm:p.norm,fadeIn:Math.min(FADE_IN_S,dur/3),fadeOut:Math.min(FADE_OUT_S,dur/3)};
+    activeCtl={pause:()=>c.suspend(),resume:()=>c.resume()};
+    const ok=await stage(dur*1000+30,token,'Deine Stimme');
+    stopMyVoice();activeCtl=null;return ok;
+  }
+  // Rückfall: <audio> mit Lautstärke-Rampe (auf iOS ist element.volume fest 1 – dort ohne Fade)
+  const dur=p.dur;myPlayback.volume=0;fadeInfo={mode:'element',dur,norm:1,fadeIn:Math.min(FADE_IN_S,dur/3),fadeOut:Math.min(FADE_OUT_S,dur/3)};
+  const fi=fadeInfo.fadeIn,fo=fadeInfo.fadeOut;
+  activeCtl=elCtl(myPlayback);try{myPlayback.currentTime=0}catch(e){}
+  playFadeTimer=setInterval(()=>{const t=myPlayback.currentTime;try{myPlayback.volume=Math.max(0,Math.min(1,t/fi,(dur-t)/fo))}catch(e){}},30);
+  playMedia(myPlayback);
+  const ok=await stage(dur*1000,token,'Deine Stimme');
+  clearInterval(playFadeTimer);playFadeTimer=null;myPlayback.pause();try{myPlayback.volume=1}catch(e){}activeCtl=null;return ok;
+}
+function updateNext(){$('nextBtn').textContent=currentPart>=parts-1?'Fertig ✓':'Nächste →'}
+function idle(err){
+  running=false;paused=false;activeCtl=null;
+  $('startRound').disabled=false;$('nextBtn').disabled=false;$('repeatBtn').disabled=false;setPauseUI();
+  if(!err){setStage('Bereit fürs nächste Stück');setStatus(voiceEnabled?'Sage „Nächste“ oder „Wiederholen“ – oder nutze die Tasten.':'Nutze „Nächste“ oder „Wiederholen“.')}
+  syncVoice();
+}
+async function runRound(){
+  cancelRound();const token=stageToken;
+  running=true;paused=false;sessionActive=true;keepAwake();
+  $('startRound').disabled=true;$('nextBtn').disabled=false;$('repeatBtn').disabled=false;updateNext();setPauseUI();
+  $('partLabel').textContent=`Stück ${currentPart+1} von ${parts}`;$('partLen').textContent='15 Sekunden';setTimer(15);
+  syncVoice();
+  for(const step of [playSource,recordSelf,playMy]){
+    const ok=await step(token);
+    if(token!==stageToken)return;      // abgebrochen / neue Runde
+    if(!ok){idle(true);return}          // Fehler (z. B. Mikrofon)
+  }
+  idle(false);
+}
+$('start').onclick=()=>{if(!sourceFile)return;listPlayer.pause();currentPart=0;sessionCount=0;sessionActive=true;keepAwake();show('train');runRound()};
+$('startRound').onclick=()=>runRound();
+$('pauseBtn').onclick=()=>setPaused(!paused);
+$('repeatBtn').onclick=()=>runRound();
+$('nextBtn').onclick=()=>{if(currentPart<parts-1){currentPart++;runRound()}else finish()};
+$('stopBtn').onclick=()=>finish();
+$('backHome').onclick=()=>{show('home')};
+async function finish(){
+  cancelRound();sessionActive=false;releaseAwake();show('done');
+  $('doneText').textContent=`Du hast ${sessionCount} Aufnahme${sessionCount===1?'':'n'} in dieser Sitzung erstellt.`;
+  await saveChain;renderRecordings();
+}
+
+/* ---------- Aufnahmen: IndexedDB ---------- */
+let dbp=null,memRecs=[],memId=0,dbFailed=false;
+function openDB(){
+  if(dbp)return dbp;
+  dbp=new Promise((res,rej)=>{
+    if(!window.indexedDB){rej(new Error('kein IndexedDB'));return}
+    const q=indexedDB.open('echo-db',1);
+    q.onupgradeneeded=()=>{q.result.createObjectStore('recordings',{keyPath:'id',autoIncrement:true})};
+    q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);q.onblocked=()=>rej(new Error('blockiert'));
+  });
+  dbp.catch(()=>{dbFailed=true});return dbp;
+}
+function tx(mode,fn){return openDB().then(db=>new Promise((res,rej)=>{const t=db.transaction('recordings',mode);const r=fn(t.objectStore('recordings'));t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)}))}
+function dbAdd(rec){return tx('readwrite',s=>s.add(rec)).catch(()=>{dbFailed=true;rec.id=--memId;memRecs.push(rec)})}
+function dbAll(){return tx('readonly',s=>s.getAll()).then(a=>a.concat(memRecs)).catch(()=>{dbFailed=true;return memRecs.slice()})}
+function dbDelete(id){if(id<0){memRecs=memRecs.filter(r=>r.id!==id);return Promise.resolve()}return tx('readwrite',s=>s.delete(id))}
+function queueSave(blob,part){
+  const rec={blob,part,date:Date.now(),source:sourceFile?.name||'Quelle',mime:blob.type};
+  saveChain=saveChain.then(()=>dbAdd(rec)).catch(()=>{});
+  try{navigator.storage?.persist?.()}catch(e){}
+}
+let playingId=null,playingUrl=null;
+function stopListPlayer(){listPlayer.pause();if(playingUrl)URL.revokeObjectURL(playingUrl);playingUrl=null;playingId=null}
+listPlayer.onended=()=>{stopListPlayer();renderRecordings()};
+async function renderRecordings(){
+  stopListPlayer();
+  const all=(await dbAll()).sort((a,b)=>b.date-a.date);
+  for(const box of [$('savedList'),$('homeList')]){
+    box.innerHTML='';
+    if(!all.length){box.textContent='Noch keine Aufnahmen.';continue}
+    all.forEach(x=>{
+      const row=document.createElement('div');row.style.cssText='display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #333';
+      const l=document.createElement('span');l.style.cssText='flex:1 1 150px;overflow-wrap:anywhere';
+      l.textContent=`Stück ${x.part} · ${x.source} · ${new Date(x.date).toLocaleString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}`;
+      const b=document.createElement('button');b.textContent='Abspielen';
+      b.onclick=()=>{if(playingId===x.id){stopListPlayer();b.textContent='Abspielen';return}stopListPlayer();renderRecordingsButtonsReset();playingUrl=URL.createObjectURL(x.blob);playingId=x.id;listPlayer.src=playingUrl;listPlayer.play().catch(()=>{});b.textContent='Stopp';b.dataset.playing='1'};
+      const d=document.createElement('button');d.textContent='↓';d.title='Aufnahme herunterladen';
+      d.onclick=()=>{const u=URL.createObjectURL(x.blob),a=document.createElement('a');a.href=u;a.download=`Echo-Stueck-${x.part}-${new Date(x.date).toISOString().slice(0,16).replace(/[:T]/g,'-')}.${extFor(x.blob.type||x.mime)}`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)};
+      const del=document.createElement('button');del.textContent='🗑';del.title='Aufnahme löschen';
+      del.onclick=async()=>{if(!confirm('Diese Aufnahme löschen?'))return;try{await dbDelete(x.id)}catch(e){}renderRecordings()};
+      row.append(l,b,d,del);box.append(row);
+    });
+  }
+  const warn=dbFailed?'Hinweis: Dauerhaftes Speichern ist in diesem Browser nicht möglich – Aufnahmen bleiben nur bis zum Schliessen. Bitte mit ↓ sichern.':'';
+  $('storageWarn').textContent=warn;$('storageWarn').classList.toggle('hidden',!warn);
+}
+function renderRecordingsButtonsReset(){document.querySelectorAll('button[data-playing]').forEach(b=>{b.textContent='Abspielen';delete b.dataset.playing})}
+
+/* ---------- Sprachsteuerung (optional) ---------- */
+function voiceWanted(){return voiceEnabled&&!!SpeechRecognitionAPI&&!recogFatal&&!voiceHold&&!(micBusy&&!recVoiceOK)&&!document.hidden&&!$('train').classList.contains('hidden')}
+function updateVoiceHint(){
+  let t;
+  if(!SpeechRecognitionAPI)t='Dieser Browser bietet keine Spracherkennung. Alle Tasten funktionieren weiterhin.';
+  else if(recogFatal)t='Spracherkennung nicht erlaubt oder nicht verfügbar. Bitte die Tasten nutzen.';
+  else if(!voiceEnabled)t='Optional. Alle Tasten funktionieren immer. Die Spracherkennung braucht meist Internet.';
+  else if(recogNetErr)t='Spracherkennung braucht Internet und ist gerade nicht erreichbar. Nutze die Tasten – es wird weiter versucht.';
+  else if(micBusy)t=recVoiceOK?'Sprachsteuerung bleibt während der Aufnahme aktiv. Falls das Gerät die Aufnahme stört, schaltet Echo sie automatisch aus – Pause geht immer per Taste.':'Erkennung während der Aufnahme aus (dein Gerät erlaubt beides nicht gleichzeitig). Nutze jetzt „Pause“ oder die Tasten.';
+  else t=paused?'Sprachsteuerung aktiv – sage „Fortsetzen“.':'Sprachsteuerung aktiv – sage „Pause“, „Wiederholen“ oder „Nächste“.';
+  if(recNotice&&voiceEnabled&&!recVoiceOK&&!micBusy)t+=' (Während der Aufnahme aus.)';
+  $('voiceStatus').textContent=t;
+  $('voiceBtn').textContent=voiceEnabled?'🎙 Sprachsteuerung ausschalten':'🎙 Sprachsteuerung einschalten';
+}
+function syncVoice(delay=0){
+  clearTimeout(recogTimer);
+  if(!voiceWanted()){if(recog)stopRecognition();updateVoiceHint();return}
+  if(!recog)recogTimer=setTimeout(startRecognition,delay);
+  updateVoiceHint();
+}
+function stopRecognition(){
+  const r=recog;recog=null;if(!r)return Promise.resolve();
+  return new Promise(res=>{let done=false;const f=()=>{if(!done){done=true;res()}};r.onresult=null;r.onerror=()=>{};r.onend=f;try{r.abort()}catch(e){f()}setTimeout(f,700)});
+}
+function matchCommand(text){
+  const t=text.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue');
+  if(/wiederhol|nochmal/.test(t))return'repeat';
+  if(/naechste|next/.test(t))return'next';
+  if(/fortsetz|resume/.test(t))return'resume';
+  if(/weiter/.test(t))return'weiter';
+  if(/pause|pausier/.test(t))return'pause';
+  return null;
+}
+function runCommand(c){
+  if(c==='pause'){setPaused(true)}
+  else if(c==='resume'){if(paused)setPaused(false)}
+  else if(c==='weiter'){if(paused)setPaused(false);else if(!running)$('nextBtn').click()}
+  else if(c==='repeat'){$('repeatBtn').click()}
+  else if(c==='next'){$('nextBtn').click()}
+}
+function startRecognition(){
+  if(recog||!voiceWanted())return;
+  let r;
+  try{
+    r=new SpeechRecognitionAPI();r.lang='de-DE';r.continuous=true;r.interimResults=true;r.maxAlternatives=3;
+    r.onresult=e=>{
+      if(r!==recog)return;recogNetErr=false;
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        for(let j=0;j<e.results[i].length;j++){
+          const c=matchCommand(e.results[i][j].transcript);
+          if(c&&Date.now()-lastCmdAt>1200){lastCmdAt=Date.now();runCommand(c);
+            // Sitzung neu starten, damit alte Zwischenergebnisse nicht erneut auslösen
+            stopRecognition().then(()=>syncVoice(250));return}
+        }
+      }
+    };
+    r.onerror=e=>{
+      if(r!==recog)return;
+      if(e.error==='not-allowed'||e.error==='service-not-allowed'){recogFatal=true}
+      else if(e.error==='network'){recogNetErr=true}
+      updateVoiceHint();
+    };
+    r.onend=()=>{ // läuft nicht ewig: automatisch neu starten, solange gewünscht
+      if(r!==recog)return;recog=null;
+      const now=Date.now();restartTimes=restartTimes.filter(t=>now-t<10000);restartTimes.push(now);
+      syncVoice(recogNetErr||restartTimes.length>6?3000:250);
+    };
+    recog=r;r.start();updateVoiceHint();
+  }catch(err){if(recog===r)recog=null;recogNetErr=true;updateVoiceHint();clearTimeout(recogTimer);recogTimer=setTimeout(()=>syncVoice(),3000)}
+}
+$('voiceBtn').onclick=()=>{
+  if(!SpeechRecognitionAPI){updateVoiceHint();return}
+  voiceEnabled=!voiceEnabled;recogFatal=false;recogNetErr=false;
+  try{localStorage.setItem('echo.voice',voiceEnabled?'1':'0')}catch(e){}
+  syncVoice();
+};
+window.addEventListener('online',()=>{recogNetErr=false;syncVoice()});
+
+/* ---------- Start ---------- */
+if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+function netBadge(){$('offlineBadge').textContent=navigator.onLine?'Offline bereit':'Offline'}
+netBadge();window.addEventListener('offline',netBadge);window.addEventListener('online',netBadge);
+renderRecordings();updateVoiceHint();
+
+</script></body></html>
