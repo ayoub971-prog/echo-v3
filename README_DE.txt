@@ -1,4 +1,4 @@
-ECHO – lokaler PWA-Prototyp (Version 4)
+ECHO – lokaler PWA-Prototyp (Version 5)
 =======================================
 
 Was enthalten ist
@@ -22,6 +22,16 @@ Was enthalten ist
   Hochpass ~100 Hz, Tiefpass ~7 kHz und ein einfaches Noise-Gate (Schwelle aus dem Raumpegel der ersten 0,5 s).
   Das ist eine Signalbereinigung. Echo trennt KEINE einzelnen Personen oder Stimmen voneinander. Hintergrundgeräusche
   und andere Stimmen im Raum können weiterhin zu hören sein. Ein volles Stück wird 15 s lang aufgenommen.
+- Vergleich nach jedem Stück (grobe Schätzung, komplett lokal und offline): Tonhöhenverlauf (Autokorrelation, 70 bis 400 Hz,
+  ca. 20 Frames pro Sekunde) und Lautstärkeverlauf von Original (Akzentfarbe) und dir (Weiss) auf einem Canvas, dazu in Worten
+  „Du sprichst im Schnitt etwa X Halbtöne höher/tiefer“ und „Rhythmus-Ähnlichkeit grob: gut/mittel/schwach“.
+  Die Ansicht ist einklappbar. Sie erscheint erst nach der Wiedergabe deiner Stimme und stört das Training nie:
+  Schlägt die Analyse fehl, steht nur ein Hinweis da.
+  Grenzen: Gemessen werden nur Tonhöhe und Lautstärke-Hüllkurve, nicht Wörter, Aussprache oder Klang. Mehrere Stimmen,
+  Musik oder Rauschen im Original machen die Tonhöhe unzuverlässig; Oktavfehler sind möglich. Die Halbton-Zahl vergleicht den
+  Mittelwert (Median) beider Stücke, nicht Ton für Ton. Der Rhythmus vergleicht nur den Lautstärke-Verlauf (mit bis zu 1 s Versatz).
+  Der Original-Abschnitt wird nur für das aktuelle 15-s-Stück dekodiert (WAV exakt, kurze Dateien bis 3 Minuten ganz, danach
+  nur lange MP3 näherungsweise; sonst „Vergleich nicht möglich“).
 - Wiedergabe deiner Stimme: Sie wird schon während der 3-s-Pause vorbereitet und startet ohne Verzögerung, mit weichem
   Ein- und Ausblenden (0,15 s / 0,3 s) und leichter Lautstärke-Angleichung. Die Dauer entspricht der echten Aufnahmelänge,
   danach steht sofort „Bereit“.
@@ -31,7 +41,7 @@ Was enthalten ist
 - Bildschirm bleibt während der ganzen Trainingssitzung wach (Wake Lock), wird nach App-Wechsel neu angefordert.
 - Offline: Die App-Hülle, Schriften (Fraunces, Outfit lokal in fonts/) und Icons werden beim ersten Laden gecacht.
   Es werden keine externen Adressen mehr geladen.
-- PWA: Manifest, Icons (192, 512, maskable 512, apple-touch-icon 180, SVG), Service Worker echo-shell-v4.
+- PWA: Manifest, Icons (192, 512, maskable 512, apple-touch-icon 180, SVG), Service Worker echo-shell-v5.
 
 Dateien
 index.html, sw.js, manifest.webmanifest, icon.svg, icon-192.png, icon-512.png, icon-maskable-512.png,
@@ -57,7 +67,7 @@ Wichtig
 - Dies ist ein funktionsfähiger Prototyp, keine geprüfte Store-App. Das Verhalten auf echten Geräten ist noch nicht bestätigt.
 
 Update-Hinweis
-- Version 4 löscht alte Caches (echo-shell-v1 bis -v3). Nach dem Hochladen die App einmal online öffnen, dann ein zweites Mal
+- Version 5 löscht alte Caches (echo-shell-v1 bis -v4). Nach dem Hochladen die App einmal online öffnen, dann ein zweites Mal
   schliessen/öffnen, damit der neue Service Worker aktiv wird.
 - Bei jeder Änderung an den Dateien in sw.js die Version (CACHE = 'echo-shell-vN') erhöhen.
 

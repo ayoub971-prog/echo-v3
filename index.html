@@ -15,6 +15,7 @@
 .banner{margin:10px 0;padding:10px 12px;border-radius:14px;font-size:14px;line-height:1.5;border:1px solid var(--accent);background:#2a2216;color:var(--text)}.banner.err{border-color:#d9534f;background:#2b1a1a;font-size:12px}.banner button{margin-top:8px;padding:8px 14px;font-size:13px}
 .choice[aria-disabled=true]{opacity:.5}
 .preview{margin:14px 0 4px;padding:14px;border:1px solid var(--line);border-radius:18px;background:#15181a}.preview h3{font:600 18px Fraunces,serif;margin:0 0 10px;color:var(--accent)}.pvmeta{display:block;margin-bottom:10px;overflow-wrap:anywhere}.pvmeta b{display:block;font-weight:600}.pvplay{width:100%;min-height:54px;font-size:18px}.preview .progress{margin:12px 0 6px}
+#compareCard summary{cursor:pointer;font:600 20px Fraunces,serif;color:var(--text)}#compareCard .status p{margin:6px 0}
 </style></head>
 <body><main class="app">
 <div id="errBanner" class="banner err hidden" role="alert"></div>
@@ -53,6 +54,12 @@
 </section>
 <section id="train" class="hidden">
 <div class="card center"><div class="roundlabel"><span id="partLabel">Stück 1</span><span id="partLen">15 Sekunden</span></div><h2 id="stageTitle">Bereit?</h2><div class="meter" id="meter">▁▃▅▇▅▂</div><div class="timer" id="timer">15</div><div class="progress"><span id="bar"></span></div><p class="status" id="status">Drücke Start, wenn du bereit bist.</p><audio id="sourceAudio" playsinline></audio><audio id="myPlayback" playsinline></audio></div>
+<div class="card hidden" id="compareCard"><details id="cmpDetails" open><summary>Vergleich: Original und deine Stimme</summary>
+<p class="tiny" style="margin:10px 0 8px"><span style="display:inline-block;width:18px;height:4px;border-radius:2px;background:#e8a04a;vertical-align:middle"></span> Original <span style="display:inline-block;width:18px;height:4px;border-radius:2px;background:#fff;vertical-align:middle;margin-left:14px"></span> Du <span style="margin-left:14px">Zeit ab Beginn des Stücks bzw. deiner Aufnahme</span></p>
+<canvas id="cmpCanvas" width="640" height="270" style="width:100%;display:block;border-radius:12px;background:#121416" aria-label="Tonhöhe und Lautstärke im Vergleich"></canvas>
+<div id="cmpText" class="status" style="margin-top:10px"></div>
+<p class="tiny">Grobe Schätzung, nur zur Orientierung. Sie misst Tonhöhe (Autokorrelation) und Lautstärke-Verlauf, nicht Wörter, Aussprache oder Klang. Hintergrundgeräusche, Musik oder mehrere Stimmen im Original machen die Tonhöhe unzuverlässig. Alles wird nur auf deinem Gerät berechnet.</p>
+</details></div>
 <div class="card"><h2>Freihändig steuern</h2><p class="status">Sage während der Runde: <b>„Pause“</b>, <b>„Fortsetzen“</b>, <b>„Wiederholen“</b> oder <b>„Nächste“</b>. Sie bleibt auch während deiner Aufnahme aktiv. Stört sie auf deinem Gerät die Aufnahme, schaltet Echo sie dort automatisch aus – <b>Pause</b> per Taste geht immer.</p><button id="voiceBtn" class="primary mainbtn">🎙 Sprachsteuerung einschalten</button><p class="tiny" id="voiceStatus">Optional. Die Tasten funktionieren immer.</p></div>
 <div class="controls"><button id="pauseBtn">Ⅱ Pause</button><button id="repeatBtn">⟳ Wiederholen</button><button id="nextBtn" class="primary">Nächste →</button><button id="stopBtn">Training beenden</button><button id="startRound" class="primary wide">Runde starten</button></div>
 </section>
@@ -176,6 +183,149 @@ function setPaused(p){
 function stopMyVoice(){try{playNode.src.stop()}catch(e){}try{playNode.src.disconnect();playNode.g.disconnect()}catch(e){}playNode=null;if(playFadeTimer){clearInterval(playFadeTimer);playFadeTimer=null}}
 let playFadeTimer=null;
 function cancelRound(){stageToken++;running=false;paused=false;activeCtl=null;sourceAudio.pause();myPlayback.pause();stopMyVoice();if(actx&&actx.state==='suspended'){try{actx.resume().catch(()=>{})}catch(e){}}setPauseUI()}
+/* ---------- Vergleich Original / deine Stimme (grobe Schätzung, komplett lokal) ---------- */
+const CMP_FPS=20,CMP_SR=8000,PITCH_MIN=70,PITCH_MAX=400;
+let cmpJob=null,cmpResult=null,cmpOpen=true;
+function decodeBuf(ab){return new Promise((res,rej)=>{const c=getCtx();if(!c){rej(new Error('kein AudioContext'));return}const r=c.decodeAudioData(ab,res,rej);if(r&&r.catch)r.catch(rej)})}
+function toMono8k(data,sr){const f=Math.max(1,Math.round(sr/CMP_SR)),n=Math.floor(data.length/f),x=new Float32Array(n);for(let i=0;i<n;i++){let s=0;for(let k=0;k<f;k++)s+=data[i*f+k];x[i]=s/f}return{x,sr:sr/f}}
+// Tonhöhe (Autokorrelation, 70-400 Hz) und Lautstärke (RMS), ca. 20 Frames pro Sekunde
+function analyzeSignal(data,sr){
+  const m=toMono8k(data,sr),fs=m.sr,hop=Math.round(fs/CMP_FPS),win=Math.round(fs*0.0625);
+  const lagMin=Math.floor(fs/PITCH_MAX),lagMax=Math.ceil(fs/PITCH_MIN);
+  const x=new Float32Array(m.x.length);let prevIn=0,prevOut=0;                       // Gleichanteil/Rumpeln entfernen
+  for(let i=0;i<x.length;i++){const v=m.x[i];prevOut=v-prevIn+0.995*prevOut;prevIn=v;x[i]=prevOut}
+  const P=new Float64Array(x.length+1);for(let i=0;i<x.length;i++)P[i+1]=P[i]+x[i]*x[i];
+  const frames=Math.max(0,Math.floor((x.length-(win+lagMax))/hop)+1);
+  const rms=new Float32Array(frames),rmax=new Float32Array(frames),lag=new Float32Array(frames),r=new Float32Array(lagMax+2);
+  for(let f=0;f<frames;f++){
+    const s=f*hop,e0=P[s+win]-P[s];rms[f]=Math.sqrt(e0/win);
+    if(e0<1e-9){continue}
+    let best=0;
+    for(let l=lagMin-1;l<=lagMax+1;l++){let c=0;for(let i=0;i<win;i++)c+=x[s+i]*x[s+l+i];const el=P[s+l+win]-P[s+l];r[l]=c/Math.sqrt(e0*el+1e-12);if(l>=lagMin&&l<=lagMax&&r[l]>best)best=r[l]}
+    let pick=0;
+    for(let l=lagMin;l<=lagMax;l++){if(r[l]>=0.9*best&&r[l]>=r[l-1]&&r[l]>=r[l+1]){pick=l;break}}   // kleinster starker Gipfel: vermeidet Oktavfehler nach unten
+    if(pick){const a=r[pick-1],b=r[pick],c2=r[pick+1],d=a-2*b+c2;lag[f]=pick+(d!==0?0.5*(a-c2)/d:0)}
+    rmax[f]=best;
+  }
+  const sorted=Array.from(rms).sort((a,b)=>a-b),p95=sorted.length?sorted[Math.floor(sorted.length*0.95)]:0,thr=Math.max(0.0015,0.08*p95);
+  const f0=new Float32Array(frames);
+  for(let f=0;f<frames;f++)if(rmax[f]>=0.45&&rms[f]>=thr&&lag[f]>0)f0[f]=fs/lag[f];
+  for(let f=0;f<frames;f++)if(f0[f]>0&&!(f>0&&f0[f-1]>0)&&!(f<frames-1&&f0[f+1]>0))f0[f]=0;      // einzelne Ausreisser entfernen
+  return{rms,f0,fps:CMP_FPS,dur:m.x.length/fs,thr};
+}
+function medianOf(a){const v=Array.from(a).filter(x=>x>0).sort((p,q)=>p-q);return{m:v.length?v[v.length>>1]:0,n:v.length}}
+function envNorm(rms){const n=rms.length,e=new Float32Array(n);for(let i=0;i<n;i++){let s=0,c=0;for(let k=-1;k<=1;k++)if(i+k>=0&&i+k<n){s+=Math.sqrt(rms[i+k]);c++}e[i]=s/c}return e}
+function rhythmCorr(o,u){
+  const a=envNorm(o.rms),b=envNorm(u.rms);let best=null;
+  for(let L=-20;L<=20;L++){
+    const i0=Math.max(0,-L),i1=Math.min(a.length,b.length-L),n=i1-i0;if(n<Math.min(a.length,b.length)*0.4||n<20)continue;
+    let ma=0,mb=0;for(let i=i0;i<i1;i++){ma+=a[i];mb+=b[i+L]}ma/=n;mb/=n;
+    let sa=0,sb=0,sab=0;for(let i=i0;i<i1;i++){const x=a[i]-ma,y=b[i+L]-mb;sa+=x*x;sb+=y*y;sab+=x*y}
+    if(sa<1e-9||sb<1e-9)return null;
+    const r=sab/Math.sqrt(sa*sb);if(best===null||r>best)best=r;
+  }
+  return best;
+}
+function compareAnalyses(o,u){
+  const mo=medianOf(o.f0),mu=medianOf(u.f0),res={semitones:null,rhythm:null,rhythmWord:null,medO:mo.m,medU:mu.m,voicedO:mo.n,voicedU:mu.n};
+  if(mo.n>=8&&mu.n>=8)res.semitones=12*Math.log2(mu.m/mo.m);
+  res.rhythm=rhythmCorr(o,u);
+  if(res.rhythm!==null)res.rhythmWord=res.rhythm>=0.6?'gut':res.rhythm>=0.35?'mittel':'schwach';
+  return res;
+}
+function cmpTexts(c){
+  const t=[];
+  if(c.semitones===null)t.push('Tonhöhe: konnte nicht zuverlässig bestimmt werden (zu wenige stimmhafte Stellen im Original oder in deiner Aufnahme).');
+  else if(Math.abs(c.semitones)<0.5)t.push('Du sprichst im Schnitt etwa gleich hoch wie das Original (Abweichung unter einem halben Halbton).');
+  else t.push('Du sprichst im Schnitt etwa '+Math.abs(c.semitones).toFixed(1).replace('.',',')+' Halbtöne '+(c.semitones>0?'höher':'tiefer')+' als das Original.');
+  if(c.semitones!==null&&Math.abs(c.semitones)>=9)t.push('Hinweis: Rund eine Oktave Unterschied ist bei verschiedenen Stimmlagen normal. Oktavfehler der Schätzung sind möglich.');
+  if(c.rhythmWord===null)t.push('Rhythmus-Ähnlichkeit grob: nicht bestimmbar (zu wenig Lautstärke-Verlauf).');
+  else t.push('Rhythmus-Ähnlichkeit grob: '+c.rhythmWord+' (Korrelation '+c.rhythm.toFixed(2).replace('.',',')+').');
+  return t;
+}
+// Original-Abschnitt (nur dieses Stück) dekodieren: WAV exakt per Byte-Ausschnitt, kurze Dateien ganz, lange MP3 per Näherung
+async function wavInfo(file){
+  const head=new DataView(await file.slice(0,Math.min(file.size,65536)).arrayBuffer());
+  const tag=o=>String.fromCharCode(head.getUint8(o),head.getUint8(o+1),head.getUint8(o+2),head.getUint8(o+3));
+  if(head.byteLength<44||tag(0)!=='RIFF'||tag(8)!=='WAVE')return null;
+  let o=12,fmt=null,dataOff=0,dataLen=0;
+  while(o+8<=head.byteLength){const id=tag(o),sz=head.getUint32(o+4,true);
+    if(id==='fmt '){fmt={format:head.getUint16(o+8,true),ch:head.getUint16(o+10,true),sr:head.getUint32(o+12,true),bits:head.getUint16(o+22,true)}}
+    else if(id==='data'){dataOff=o+8;dataLen=Math.min(sz,file.size-dataOff);break}
+    o+=8+sz+(sz&1)}
+  if(!fmt||!dataOff||fmt.format!==1||fmt.bits!==16||!fmt.ch)return null;
+  return{fmt,dataOff,dataLen};
+}
+function buildWav(pcm,sr,ch){const h=new ArrayBuffer(44),v=new DataView(h),s=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};s(0,'RIFF');v.setUint32(4,36+pcm.byteLength,true);s(8,'WAVE');s(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);v.setUint32(24,sr,true);v.setUint32(28,sr*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);s(36,'data');v.setUint32(40,pcm.byteLength,true);return new Blob([h,pcm])}
+async function extractOriginalSegment(file,start,end){
+  const info=await wavInfo(file);
+  if(info){
+    const ba=info.fmt.ch*2,a=Math.floor(start*info.fmt.sr)*ba,b=Math.min(info.dataLen,Math.floor(end*info.fmt.sr)*ba);
+    if(b<=a)throw new Error('leerer Abschnitt');
+    const pcm=await file.slice(info.dataOff+a,info.dataOff+b).arrayBuffer();
+    const buf=await decodeBuf(await buildWav(pcm,info.fmt.sr,info.fmt.ch).arrayBuffer());
+    return{data:buf.getChannelData(0),sr:buf.sampleRate};
+  }
+  if(sourceDuration<=180){                      // kurze Datei: ganz dekodieren, nur den Abschnitt behalten, Rest freigeben
+    let buf=await decodeBuf(await file.arrayBuffer());const sr=buf.sampleRate;
+    const seg=buf.getChannelData(0).slice(Math.floor(start*sr),Math.floor(end*sr));buf=null;
+    if(!seg.length)throw new Error('leerer Abschnitt');return{data:seg,sr};
+  }
+  if(/mp3|mpeg/i.test((file.type||'')+file.name)){   // lange MP3: Byte-Näherung (Gleichlauf-Bitrate angenommen)
+    const a=Math.max(0,Math.floor(start/sourceDuration*file.size)-4096),b=Math.min(file.size,Math.ceil(end/sourceDuration*file.size)+4096);
+    const buf=await decodeBuf(await file.slice(a,b).arrayBuffer());return{data:buf.getChannelData(0).slice(),sr:buf.sampleRate};
+  }
+  throw new Error('Datei zu lang für den Vergleich');
+}
+function startCmpJob(token){
+  const start=currentPart*15,end=Math.min(sourceDuration,start+15),file=sourceFile;
+  cmpResult=null;
+  const job={token,promise:null};
+  job.promise=(async()=>{try{const seg=await extractOriginalSegment(file,start,end);return analyzeSignal(seg.data,seg.sr)}catch(e){return{error:e&&e.message||String(e)}}})();
+  cmpJob=job;
+}
+function scheduleComparison(token,prep){
+  setTimeout(async()=>{
+    try{
+      const job=cmpJob;if(!job||job.token!==token||!prep||!prep.buffer)return;
+      const o=await job.promise;if(token!==stageToken)return;
+      const u=analyzeSignal(prep.buffer.getChannelData(0),prep.buffer.sampleRate);
+      cmpResult=o.error?{token,error:o.error}:{token,o,u,c:compareAnalyses(o,u)};
+      if(!running&&token===stageToken)showComparison();
+    }catch(e){cmpResult={token,error:String(e&&e.message||e)};if(!running&&token===stageToken)showComparison()}
+  },60);
+}
+function drawComparison(cv,o,u){
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth||cv.width,H=Math.round(W*0.42);
+  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv.style.height=H+'px';
+  const g=cv.getContext('2d');g.scale(dpr,dpr);g.clearRect(0,0,W,H);
+  const ACC='#e8a04a',WHITE='#ffffff',pad=8,labelH=14,gap=10,ph=(H-2*pad-2*labelH-gap)/2;
+  const T=Math.max(o.dur,u.dur,1);
+  function pane(y0,title,series,mapY){
+    g.fillStyle='#8a9096';g.font='11px system-ui,sans-serif';g.textBaseline='top';g.fillText(title,pad,y0);
+    const top=y0+labelH;g.strokeStyle='#2b3034';g.lineWidth=1;g.strokeRect(pad+.5,top+.5,W-2*pad-1,ph);
+    series.forEach(s=>{g.strokeStyle=s.color;g.lineWidth=2;g.lineJoin='round';g.beginPath();let pen=false;
+      for(let i=0;i<s.v.length;i++){const val=s.v[i];if(!(val>0)){pen=false;continue}
+        const x=pad+(i/s.fps)/T*(W-2*pad),y=top+ph-mapY(val)*ph;if(!pen){g.moveTo(x,y);pen=true}else g.lineTo(x,y)}
+      g.stroke()});
+  }
+  const lg=v=>Math.min(1,Math.max(0,(Math.log2(v/PITCH_MIN))/Math.log2(PITCH_MAX/PITCH_MIN)));
+  pane(pad,'Tonhöhe (70 bis 400 Hz)',[{v:o.f0,fps:o.fps,color:ACC},{v:u.f0,fps:u.fps,color:WHITE}],lg);
+  const nrm=a=>{let mx=0;for(const x of a)if(x>mx)mx=x;const e=envNorm(a);return Float32Array.from(e,x=>mx>0?Math.max(0.001,x/Math.sqrt(mx)):0)};
+  pane(pad+labelH+ph+gap,'Lautstärke (jeweils auf den eigenen Höchstwert bezogen)',[{v:nrm(o.rms),fps:o.fps,color:ACC},{v:nrm(u.rms),fps:u.fps,color:WHITE}],v=>Math.min(1,v));
+}
+function showComparison(){
+  const card=$('compareCard');if(!cmpResult||cmpResult.token!==stageToken){return}
+  try{
+    $('cmpDetails').open=cmpOpen;card.classList.remove('hidden');
+    if(cmpResult.error){$('cmpText').textContent='Der Vergleich war für dieses Stück nicht möglich ('+cmpResult.error+'). Das Training läuft ganz normal weiter.';$('cmpCanvas').classList.add('hidden');return}
+    $('cmpCanvas').classList.remove('hidden');
+    $('cmpText').innerHTML='';cmpTexts(cmpResult.c).forEach(t=>{const p=document.createElement('p');p.textContent=t;$('cmpText').appendChild(p)});
+    drawComparison($('cmpCanvas'),cmpResult.o,cmpResult.u);
+  }catch(e){card.classList.add('hidden')}
+}
+$('cmpDetails').addEventListener('toggle',()=>{cmpOpen=$('cmpDetails').open;if(cmpOpen&&cmpResult&&!cmpResult.error&&!$('compareCard').classList.contains('hidden')){try{drawComparison($('cmpCanvas'),cmpResult.o,cmpResult.u)}catch(e){}}});
+
 /* ---------- Ablauf einer Runde ---------- */
 async function playSource(token){
   const start=currentPart*15,end=Math.min(sourceDuration,start+15);
@@ -342,6 +492,7 @@ async function playMy(token){
     const t0=c.currentTime+0.03;scheduleFade(g.gain,t0,dur,p.norm);src.start(t0);
     playNode={src,g};fadeInfo={mode:'webaudio',dur,norm:p.norm,fadeIn:Math.min(FADE_IN_S,dur/3),fadeOut:Math.min(FADE_OUT_S,dur/3)};
     activeCtl={pause:()=>c.suspend(),resume:()=>c.resume()};
+    try{scheduleComparison(token,p)}catch(e){}
     const ok=await stage(dur*1000+30,token,'Deine Stimme');
     stopMyVoice();activeCtl=null;return ok;
   }
@@ -351,6 +502,7 @@ async function playMy(token){
   activeCtl=elCtl(myPlayback);try{myPlayback.currentTime=0}catch(e){}
   playFadeTimer=setInterval(()=>{const t=myPlayback.currentTime;try{myPlayback.volume=Math.max(0,Math.min(1,t/fi,(dur-t)/fo))}catch(e){}},30);
   playMedia(myPlayback);
+  try{scheduleComparison(token,p)}catch(e){}
   const ok=await stage(dur*1000,token,'Deine Stimme');
   clearInterval(playFadeTimer);playFadeTimer=null;myPlayback.pause();try{myPlayback.volume=1}catch(e){}activeCtl=null;return ok;
 }
@@ -359,6 +511,7 @@ function idle(err){
   running=false;paused=false;activeCtl=null;
   $('startRound').disabled=false;$('nextBtn').disabled=false;$('repeatBtn').disabled=false;setPauseUI();
   if(!err){setStage('Bereit fürs nächste Stück');setStatus(voiceEnabled?'Sage „Nächste“ oder „Wiederholen“ – oder nutze die Tasten.':'Nutze „Nächste“ oder „Wiederholen“.')}
+  if(!err){try{showComparison()}catch(e){}}
   syncVoice();
 }
 async function runRound(){
@@ -367,6 +520,7 @@ async function runRound(){
   $('startRound').disabled=true;$('nextBtn').disabled=false;$('repeatBtn').disabled=false;updateNext();setPauseUI();
   $('partLabel').textContent=`Stück ${currentPart+1} von ${parts}`;$('partLen').textContent='15 Sekunden';setTimer(15);
   syncVoice();
+  try{$('compareCard').classList.add('hidden');cmpResult=null;startCmpJob(token)}catch(e){}
   for(const step of [playSource,recordSelf,playMy]){
     const ok=await step(token);
     if(token!==stageToken)return;      // abgebrochen / neue Runde
