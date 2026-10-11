@@ -1,9 +1,11 @@
-ECHO – lokaler PWA-Prototyp (Version 3)
+ECHO – lokaler PWA-Prototyp (Version 4)
 =======================================
 
 Was enthalten ist
 - Mobile-first Web-App mit dunklem Design und Akzent #e8a04a
-- Audiodatei auswählen, Übungston erzeugen oder eigene Quelle mit dem Mikrofon aufnehmen
+- Grosse Schaltfläche „Audio hochladen“ (mp3, wav, m4a, ogg, aac), Übungston oder eigene Quelle mit dem Mikrofon.
+  Jede Quelle hat eine Vorschau („Anhören“ mit Pause, Dateiname, Dauer, Anzahl 15-s-Stücke), erst danach „Training starten“.
+  Hochgeladene, geübte und aufgenommene Quellen laufen durch dieselbe Pipeline.
 - 15-Sekunden-Ablauf: Original hören -> nachsprechen (automatische Aufnahme) -> Signalton -> 3 s Pause -> eigene Stimme hören.
   Das letzte, kürzere Stück wird passend kurz abgespielt; die Aufnahme dauert dann so lang wie das Stück (mindestens 3 s).
 - Pause/Fortsetzen: Die Zeit während der Pause zählt nicht mit. Beim Fortsetzen läuft Original bzw. deine Wiedergabe
@@ -29,11 +31,19 @@ Was enthalten ist
 - Bildschirm bleibt während der ganzen Trainingssitzung wach (Wake Lock), wird nach App-Wechsel neu angefordert.
 - Offline: Die App-Hülle, Schriften (Fraunces, Outfit lokal in fonts/) und Icons werden beim ersten Laden gecacht.
   Es werden keine externen Adressen mehr geladen.
-- PWA: Manifest, Icons (192, 512, maskable 512, apple-touch-icon 180, SVG), Service Worker echo-shell-v3.
+- PWA: Manifest, Icons (192, 512, maskable 512, apple-touch-icon 180, SVG), Service Worker echo-shell-v4.
 
 Dateien
 index.html, sw.js, manifest.webmanifest, icon.svg, icon-192.png, icon-512.png, icon-maskable-512.png,
 apple-touch-icon.png, fonts/ (woff2 + Lizenzen OFL), README_DE.txt
+
+In-App-Browser (z. B. GitHub-App, Instagram, Facebook)
+- Dort fehlen oft Mikrofon, Dateiauswahl und Installation. Echo erkennt solche Browser und zeigt oben den Hinweis
+  „Öffne diese Seite in Chrome oder Safari“ mit Knopf „Link kopieren“.
+- Fehlt dem Browser die Aufnahme-Funktion (MediaRecorder/Mikrofon), erscheint: „Dieser Browser unterstützt keine Aufnahme - bitte in
+  Chrome (Android) oder Safari (iPhone) öffnen.“ Die Oberfläche bleibt trotzdem sichtbar, Vorschau und Anhören gehen weiter.
+- Unerwartete Fehler zeigt ein kleines rotes Banner oben auf der Seite (mit Zeilennummer), damit man sie melden kann.
+- Der Code nutzt keine Syntax, die erst in sehr neuen Browsern läuft (kein ?. / ??), und prüft jede optionale API vorher.
 
 Wichtig
 - Mikrofon benötigt HTTPS (oder localhost) und eine Nutzerfreigabe.
@@ -47,7 +57,7 @@ Wichtig
 - Dies ist ein funktionsfähiger Prototyp, keine geprüfte Store-App. Das Verhalten auf echten Geräten ist noch nicht bestätigt.
 
 Update-Hinweis
-- Version 3 löscht alte Caches (echo-shell-v1, -v2). Nach dem Hochladen die App einmal online öffnen, dann ein zweites Mal
+- Version 4 löscht alte Caches (echo-shell-v1 bis -v3). Nach dem Hochladen die App einmal online öffnen, dann ein zweites Mal
   schliessen/öffnen, damit der neue Service Worker aktiv wird.
 - Bei jeder Änderung an den Dateien in sw.js die Version (CACHE = 'echo-shell-vN') erhöhen.
 
