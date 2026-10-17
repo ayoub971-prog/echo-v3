@@ -135,3 +135,5 @@ Feste Bedienleiste unten im Trainingsbildschirm (auch auf kleinen Handys ohne Sc
  - Sprachbefehl "Weiter" = nächstes Stück (ist die Runde pausiert, setzt "Weiter" fort; während deiner Aufnahme wird "Weiter" per Sprache
    ignoriert, damit ein gesprochenes "weiter" im Text die Runde nicht abbricht; die Taste geht immer).
 Test (Mac/Linux): node test/v6.js (Playwright, simulierte Zustände suspended/interrupted, NotAllowedError, Dekodierfehler, Tracks gestoppt).
+
+lame.min.js: lamejs 1.2.1 (LGPL-3.0), unveraendert, fuer die MP3-Umwandlung im Browser.

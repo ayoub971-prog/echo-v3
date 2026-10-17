@@ -1,8 +1,9 @@
-const CACHE = 'echo-shell-v6';
+const CACHE = 'echo-shell-v7';
 const CORE = [
   './', './index.html', './manifest.webmanifest',
   './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
-  './fonts/Fraunces-latin.woff2', './fonts/Outfit-latin.woff2'
+  './fonts/Fraunces-latin.woff2', './fonts/Outfit-latin.woff2',
+  './convert.js', './convert-worker.js', './lame.min.js'
 ];
 self.addEventListener('install', e => e.waitUntil(
   caches.open(CACHE)

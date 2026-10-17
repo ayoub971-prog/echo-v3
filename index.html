@@ -19,6 +19,27 @@
 .banner{margin:10px 0;padding:10px 12px;border-radius:14px;font-size:14px;line-height:1.5;border:1px solid var(--accent);background:#2a2216;color:var(--text)}.banner.err{border-color:#d9534f;background:#2b1a1a;font-size:12px}.banner button{margin-top:8px;padding:8px 14px;font-size:13px}
 .choice[aria-disabled=true]{opacity:.5}
 .preview{margin:14px 0 4px;padding:14px;border:1px solid var(--line);border-radius:18px;background:#15181a}.preview h3{font:600 18px Fraunces,serif;margin:0 0 10px;color:var(--accent)}.pvmeta{display:block;margin-bottom:10px;overflow-wrap:anywhere}.pvmeta b{display:block;font-weight:600}.pvplay{width:100%;min-height:54px;font-size:18px}.preview .progress{margin:12px 0 6px}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.66);display:flex;align-items:center;justify-content:center;padding:16px 12px calc(16px + env(safe-area-inset-bottom))}
+.mbox{width:100%;max-width:520px;background:linear-gradient(145deg,#1c2023,#151719);border:1px solid #2b3034;border-radius:22px;padding:20px;max-height:88vh;max-height:88dvh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.mbox h2{font:600 24px Fraunces,serif;margin:0 0 8px}.mbox .status{margin:0 0 6px}
+.minput{width:100%;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:#101214;color:var(--text);font-size:17px;margin:10px 0 4px}
+.minput:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.mbtns{display:flex;gap:10px;margin-top:16px}.mbtns button{flex:1;min-height:52px}
+.mhelp{font-size:15px;line-height:1.55;color:var(--text)}.mhelp ol{padding-left:22px;margin:8px 0}.mhelp li{margin:6px 0}.mhelp .tiny{display:block;margin-top:8px}
+button.danger{background:#c9483f;border-color:#c9483f;color:#fff}
+.liblist{margin-top:6px}
+.aitem{padding:16px 0;border-top:1px solid var(--line)}
+.aname{font-weight:700;font-size:18px;overflow-wrap:anywhere}
+.ameta{margin-top:3px}
+.aitem .progress{margin:10px 0 6px;height:6px}
+.apos{font-size:13px;color:var(--muted)}.apos b{color:var(--accent);font-weight:600}
+.abtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.abtns button{flex:1 1 auto;padding:11px 14px;min-height:48px}
+.abtns.small{margin-top:8px}.abtns.small button{padding:8px 10px;min-height:40px;font-size:14px;font-weight:500;background:transparent}
+.aitem.pending .aname{color:var(--muted)}.aitem.fresh{animation:fresh 2.4s ease-out}
+@keyframes fresh{0%{background:rgba(232,160,74,.22)}100%{background:transparent}}
+.pvrow{display:flex;gap:8px;margin-top:10px}.pvrow button{flex:1;padding:10px 8px;min-height:46px}
+.preview .progress{cursor:pointer;height:10px}
+.empty{color:var(--muted);line-height:1.55;font-size:15px;margin:10px 0 4px}
 #compareCard summary{cursor:pointer;font:600 20px Fraunces,serif;color:var(--text)}#compareCard .status p{margin:6px 0}
 </style></head>
 <body><main class="app">
@@ -43,21 +64,29 @@
 <header class="top"><div class="brand">Echo</div><span class="pill" id="offlineBadge">Online</span></header>
 <section id="home">
 <div class="hero"><div class="wave">▁▃▆█▅▂▇</div><h1>Deine Stimme.<br>Dein Echo.</h1><p>Hören. Nachsprechen. Vergleichen.<br>Einfach, privat und direkt auf deinem Gerät.</p></div>
-<div class="card"><h2>Quelle wählen</h2>
+<div class="card" id="libCard"><h2>Meine Audios</h2>
+<button class="choice" id="uploadBtn" type="button"><span class="ico">+</span><span>Audio oder Video hochladen<small>Aus Dateien, Fotos oder Sprachmemos – auch lange Podcasts und Videos. Echo verkleinert sie automatisch.</small></span></button>
+<input id="audioFile" class="vh" type="file" tabindex="-1" aria-hidden="true" accept="audio/*,video/*,.mp3,.wav,.m4a,.ogg,.aac,.mp4,.mov,.m4v,.caf,.opus,.flac,.webm,audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/ogg,audio/aac,audio/x-caf,video/mp4,video/quicktime">
+<button class="choice" id="podcastBtn" type="button"><span class="ico">🔗</span><span>Podcast-Link einfügen<small>Direkter Link zu einer Folge (meist mp3)</small></span></button>
+<div id="libMsg" class="banner hidden" role="status"></div>
+<div id="libList" class="liblist"></div>
+<p class="tiny headphones" style="margin:16px 0 0;padding:10px 12px;border:1px solid var(--line);border-radius:14px">🎧 <b>Bitte Kopfhörer verwenden.</b> Sonst hört das Mikrofon das Original mit und deine Aufnahme wird verfälscht.</p>
+<p class="tiny" id="storageInfo" style="margin:10px 0 0"></p>
+</div>
+<div class="card" id="srcCard"><h2>Schnell ausprobieren</h2>
 <div id="capNote" class="banner hidden" role="note"></div>
-<button class="choice" id="uploadBtn" type="button"><span class="ico">+</span><span>Audio hochladen<small>Aus Dateien oder Sprachmemos: mp3, wav, m4a, ogg, aac (auch grosse Dateien)</small></span></button>
-<input id="audioFile" class="vh" type="file" tabindex="-1" aria-hidden="true" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.mp4,.caf,.opus,.flac,.webm,audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/ogg,audio/aac,audio/x-caf">
-<div id="fileInfo" class="fileinfo">Lade eine Audiodatei hoch, nimm mit dem Mikrofon auf oder nutze den Übungston.</div>
-<button class="choice" id="recordSource" type="button"><span class="ico">🎙</span><span>Eigene Aufnahme<small>Eine Quelle direkt aufnehmen</small></span></button>
+<div id="fileInfo" class="fileinfo">Nimm mit dem Mikrofon etwas auf oder nutze den Übungston.</div>
+<button class="choice" id="recordSource" type="button"><span class="ico">🎙</span><span>Eigene Aufnahme<small>Eine Quelle direkt aufnehmen und auf Wunsch speichern</small></span></button>
 <button class="choice" id="practice" type="button"><span class="ico">♫</span><span>Übungston<small>Zum Testen des Ablaufs</small></span></button>
-<div id="preview" class="preview hidden"><h3>Vorschau: erst anhören</h3><span class="pvmeta"><b id="pvName">-</b><span id="pvInfo" class="tiny"></span></span><button id="pvPlay" class="pvplay" type="button">Anhören</button><div class="progress"><span id="pvBar"></span></div><div class="roundlabel"><span id="pvTime">00:00</span><span id="pvTotal">00:00</span></div></div>
-<p class="tiny headphones" style="margin:16px 0 0;padding:10px 12px;border:1px solid var(--line);border-radius:14px">🎧 <b>Bitte Kopfhörer verwenden.</b> Sonst hört das Mikrofon das Original mit und deine Aufnahme wird verfälscht.</p><button class="primary mainbtn" id="start" disabled>Training starten →</button>
+<div id="pvHome"></div>
+<div id="preview" class="preview hidden"><h3 id="pvHead">Vorschau: erst anhören</h3><span class="pvmeta"><b id="pvName">-</b><span id="pvInfo" class="tiny"></span></span><button id="pvPlay" class="pvplay" type="button">Anhören</button><div class="progress" id="pvSeek" title="Antippen zum Springen"><span id="pvBar"></span></div><div class="roundlabel"><span id="pvTime">00:00</span><span id="pvTotal">00:00</span></div><div class="pvrow hidden" id="pvExtra"><button type="button" id="pvBack">↺ 15 s</button><button type="button" id="pvFwd">15 s ↻</button><button type="button" id="pvTrain" class="primary">Training ab hier</button></div></div>
+<button class="primary mainbtn" id="start" disabled>Training starten →</button>
 </div>
 <div class="card"><h2>So läuft eine Runde</h2><p class="status"><span class="segS">5</span> s Original → <span class="segS">5</span> s Aufnahme → Signalton → 3 s Pause → deine Stimme hören.</p><p class="tiny">Tipp: Kopfhörer verwenden. Sprachbefehle sind optional – alle Tasten funktionieren immer. Audio und Aufnahmen bleiben auf deinem Gerät.</p></div>
 <div class="card"><h2>Aufnahmen auf diesem Gerät</h2><div id="homeList" class="status">Noch keine Aufnahmen.</div></div>
 </section>
 <section id="train" class="hidden">
-<div class="card center"><div class="roundlabel"><span id="partLabel">Stück 1</span><span id="partLen"><span class="segS">5</span> Sekunden</span></div><h2 id="stageTitle">Bereit?</h2><div class="meter" id="meter">▁▃▅▇▅▂</div><div class="timer" id="timer"><span class="segS">5</span></div><div class="progress"><span id="bar"></span></div><p class="status" id="status">Drücke Start, wenn du bereit bist.</p><p class="tiny hidden" id="muteHint">Kein Ton? Lautstärke prüfen und am iPhone den Stumm-Schalter an der Seite.</p><button id="playVoiceBtn" class="primary mainbtn hidden" type="button">Deine Stimme anhören</button><audio id="sourceAudio" playsinline></audio><audio id="myPlayback" playsinline></audio></div>
+<div class="card center"><div class="roundlabel"><span id="partLabel">Stück 1</span><span id="partLen"><span class="segS">5</span> Sekunden</span></div><p class="tiny" id="trainName" style="margin:6px 0 0;overflow-wrap:anywhere"></p><h2 id="stageTitle">Bereit?</h2><div class="meter" id="meter">▁▃▅▇▅▂</div><div class="timer" id="timer"><span class="segS">5</span></div><div class="progress"><span id="bar"></span></div><p class="status" id="status">Drücke Start, wenn du bereit bist.</p><p class="tiny hidden" id="muteHint">Kein Ton? Lautstärke prüfen und am iPhone den Stumm-Schalter an der Seite.</p><button id="playVoiceBtn" class="primary mainbtn hidden" type="button">Deine Stimme anhören</button><audio id="sourceAudio" playsinline></audio><audio id="myPlayback" playsinline></audio></div>
 <div class="card hidden" id="afterCard"><h2>Nach dem Stück</h2>
 <div style="display:flex;flex-direction:column;gap:10px"><button id="manOrig" type="button">Original anhören</button><button id="manVoice" type="button">Meine Stimme anhören</button><button id="manBoth" type="button">Beide nacheinander</button></div>
 <label style="display:flex;align-items:center;gap:10px;margin-top:14px;font-weight:600"><input type="checkbox" id="repeatOrig" checked style="width:22px;height:22px;accent-color:#e8a04a"> Original danach wiederholen</label>
@@ -73,8 +102,16 @@
 <div id="ctlBar"><button id="nextBtn" class="primary" type="button">Weiter (nächste 5 Sekunden)</button><button id="repeatBtn" type="button">⟳ Wiederholen</button><button id="pauseBtn" type="button">Ⅱ Pause</button></div>
 </section>
 <section id="done" class="hidden"><div class="hero"><div class="wave">✓</div><h1>Gut gemacht.</h1><p id="doneText">Training abgeschlossen.</p><button class="primary mainbtn" id="backHome">Zur Startseite</button></div><div class="card"><h2>Aufnahmen auf diesem Gerät</h2><div id="storageWarn" class="tiny hidden"></div><div id="savedList" class="status">Deine Aufnahmen erscheinen hier.</div></div></section>
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="mTitle"><div class="mbox">
+<h2 id="mTitle"></h2><p id="mText" class="status"></p>
+<input id="mInput" class="minput hidden" type="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="done">
+<div id="mProg" class="hidden"><div class="progress"><span id="mBar"></span></div><p class="tiny" id="mProgText"></p></div>
+<div id="mHelp" class="mhelp hidden"></div>
+<div class="mbtns"><button id="mCancel" type="button">Abbrechen</button><button id="mOk" class="primary" type="button">Speichern</button></div>
+</div></div>
 <footer class="footer">Echo · Mobil · Offline · Deine Daten bleiben bei dir</footer>
 </main>
+<script src="convert.js"></script>
 <script>
 const $=id=>document.getElementById(id);
 const SpeechRecognitionAPI=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -90,7 +127,7 @@ try{voiceEnabled=!!SpeechRecognitionAPI&&localStorage.getItem('echo.voice')==='1
 const sourceAudio=$('sourceAudio'),myPlayback=$('myPlayback'),listPlayer=new Audio();
 
 /* ---------- Anzeige-Helfer ---------- */
-function show(id){['home','train','done'].forEach(x=>$(x).classList.toggle('hidden',x!==id));try{window.scrollTo(0,0)}catch(e){}syncVoice()}
+function show(id){['home','train','done'].forEach(x=>$(x).classList.toggle('hidden',x!==id));try{window.scrollTo(0,0)}catch(e){}syncVoice();if(id==='home'){try{renderLibrary()}catch(e){}}}
 function setStatus(t){statusText=t;$('status').textContent=t}
 function setStage(t){$('stageTitle').textContent=t}
 function setTimer(n,total=SEGMENT_SECONDS){$('timer').textContent=String(Math.max(0,Math.ceil(n)));$('bar').style.width=(Math.max(0,Math.min(total,total-n))/total*100)+'%'}
@@ -124,7 +161,7 @@ function unlockEl(el){
 }
 function primeAudio(){
   const c=getCtx();if(c&&c.state!=='running'&&c.state!=='closed'){try{c.resume().catch(()=>{})}catch(e){}}
-  unlockEl(myPlayback);unlockEl(listPlayer);setAudioSession('playback');
+  unlockEl(myPlayback);unlockEl(listPlayer);unlockEl(sourceAudio);setAudioSession('playback');
 }
 ['pointerdown','pointerup','touchstart','touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,primeAudio,{passive:true,capture:true}));
 function beep(){try{const c=getCtx();if(!c)return;(c.state==='running'?Promise.resolve(true):ensureRunning(c,800)).then(ok=>{if(!ok)return;const o=c.createOscillator(),g=c.createGain(),t=c.currentTime;o.frequency.value=880;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.07,t+.012);g.gain.setValueAtTime(.07,t+.13);g.gain.linearRampToValueAtTime(0,t+.16);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.17)}).catch(()=>{})}catch(e){}}
@@ -138,28 +175,45 @@ function releaseAwake(){try{wakeLock.release()}catch(e){}wakeLock=null}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(sessionActive)keepAwake();try{if(actx&&actx.state!=='running'&&actx.state!=='closed')actx.resume().catch(()=>{})}catch(e){}}syncVoice()});
 
 /* ---------- Quelle ---------- */
-function setSource(file,kind='file',known=0){
+let sourceKind='file',srcGen=0;
+function srcMsg(t){if(sourceKind==='lib')libMsg(t,'err');else $('fileInfo').textContent=t}
+function setSource(file,kind='file',known=0,onReady,onFail){
+  try{if(listenMode)posTick(true)}catch(e){}
+  if(kind!=='lib'){currentAudioId=null;currentMeta=null}
+  sourceKind=kind;listenMode=false;
   sourceFile=file;$('start').disabled=true;sourceDuration=0;try{sourceAudio.pause()}catch(e){}$('preview').classList.add('hidden');
   if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl=URL.createObjectURL(file);
-  const a=sourceAudio;a.preload='metadata';a.onerror=()=>{$('fileInfo').textContent='Diese Audiodatei kann der Browser nicht abspielen. Bitte mp3, m4a, wav, ogg oder aac verwenden.';$('preview').classList.add('hidden');$('start').disabled=true};
-  a.onloadedmetadata=()=>{a.onloadedmetadata=null;if(isFinite(a.duration)&&a.duration>0)ready(a.duration);else fixDuration(known)};
+  const a=sourceAudio;a.preload='metadata';let tries=0;const gen=++srcGen;
+  a.onerror=()=>{if(gen!==srcGen||a.getAttribute('src')!==sourceUrl)return;
+    // Aussetzer beim Laden (z. B. gespeicherte Datei aus IndexedDB): einmal als Kopie im Speicher, dann mit neuer Adresse nochmals versuchen
+    if(tries<4){tries++;setTimeout(async()=>{if(gen!==srcGen)return;
+      if(tries===1){try{const buf=await file.arrayBuffer();if(gen!==srcGen)return;file=new File([buf],file.name||'audio',{type:file.type});sourceFile=file}catch(e){}}
+      URL.revokeObjectURL(sourceUrl);sourceUrl=URL.createObjectURL(file);a.onloadedmetadata=onMeta;a.src=sourceUrl;try{a.load()}catch(e){}},150*tries);return}
+    srcMsg('Diese Audiodatei kann der Browser nicht abspielen. Bitte mp3, m4a, wav, ogg oder aac verwenden.');$('preview').classList.add('hidden');$('start').disabled=true;if(onFail){const f=onFail;onFail=null;onReady=null;f(new Error('nicht abspielbar'))}};
+  const onMeta=()=>{a.onloadedmetadata=null;if(isFinite(a.duration)&&a.duration>0)ready(a.duration);else fixDuration(known)};a.onloadedmetadata=onMeta;
   a.src=sourceUrl;
   function ready(d){
-    if(!d||!isFinite(d)){$('fileInfo').textContent='Die Länge dieser Datei konnte nicht ermittelt werden.';return}
+    if(!d||!isFinite(d)){srcMsg('Die Länge dieser Datei konnte nicht ermittelt werden.');if(onFail){const f=onFail;onFail=null;onReady=null;f(new Error('Länge unbekannt'))}return}
     sourceDuration=d;parts=Math.max(1,Math.ceil(d/SEGMENT_SECONDS));
     if(parts>1&&d-(parts-1)*SEGMENT_SECONDS<SKIP_REMAINDER_SECONDS)parts--; // winziger Rest am Ende wird übersprungen
-    $('fileInfo').textContent=`${file.name||'Aufnahme'} · ${formatTime(d)} · ${parts} Stücke`;$('start').disabled=false;pvShow(file,kind,d)}
+    if(kind!=='lib')$('fileInfo').textContent=`${file.name||'Aufnahme'} · ${formatTime(d)} · ${parts} Stücke`;$('start').disabled=kind==='lib';pvShow(file,kind,d);if(onReady){const f=onReady;onReady=null;onFail=null;f(d)}}
   // MediaRecorder-WebM meldet in Chrome duration=Infinity: ans Ende springen, damit die echte Länge berechnet wird
-  function fixDuration(known){let done=false;const fin=()=>{if(done)return;done=true;a.removeEventListener('timeupdate',onT);const d=isFinite(a.duration)?a.duration:known;try{a.currentTime=0}catch(e){}ready(d)};const onT=()=>{if(isFinite(a.duration))fin()};a.addEventListener('timeupdate',onT);try{a.currentTime=1e7}catch(e){}setTimeout(fin,2500)}
+  function fixDuration(known){let done=false;const fin=()=>{if(done)return;done=true;a.removeEventListener('timeupdate',onT);const d=isFinite(a.duration)&&a.duration>0?a.duration:known;try{a.currentTime=0}catch(e){}ready(d)};const onT=()=>{if(isFinite(a.duration))fin()};a.addEventListener('timeupdate',onT);try{a.currentTime=1e7}catch(e){}setTimeout(fin,2500)}
 }
 $('uploadBtn').onclick=()=>{try{$('audioFile').click()}catch(e){$('fileInfo').textContent='Die Dateiauswahl lässt sich in diesem Browser nicht öffnen. Bitte in Chrome oder Safari öffnen.'}};
-$('audioFile').addEventListener('change',e=>{let f=(e.target.files||[])[0];if(f)setSource(f)});
+$('audioFile').addEventListener('change',e=>{let f=(e.target.files||[])[0];try{e.target.value=''}catch(_){}if(f)addFile(f)});
 /* Vorschau-Player (Quelle anhören, bevor das Training startet) */
 function pvUpdate(){const d=sourceDuration||0,t=sourceAudio.currentTime||0;$('pvTime').textContent=formatTime(t);$('pvBar').style.width=(d?Math.min(100,t/d*100):0)+'%';$('pvPlay').textContent=sourceAudio.paused?'Anhören':'Pause'}
 ['play','pause','ended','timeupdate','seeked'].forEach(ev=>sourceAudio.addEventListener(ev,pvUpdate));
 sourceAudio.addEventListener('ended',()=>{if(!running){try{sourceAudio.currentTime=0}catch(e){}}});
-$('pvPlay').onclick=()=>{if(running)return;if(sourceAudio.paused){const p=sourceAudio.play();if(p&&p.catch)p.catch(()=>{$('fileInfo').textContent='Wiedergabe nicht möglich. Bitte erneut tippen oder eine andere Datei wählen.'})}else sourceAudio.pause()};
-function pvShow(file,kind,d){const name=kind==='mic'?'Eigene Aufnahme':kind==='practice'?'Übungston':(file.name||'Audiodatei');$('pvName').textContent=name;$('pvInfo').textContent=`${formatTime(d)}, ${parts} ${parts===1?'Stück':'Stücke'} zu je ${SEGMENT_SECONDS} s`;$('pvTotal').textContent=formatTime(d);$('preview').classList.remove('hidden');pvUpdate()}
+$('pvPlay').onclick=()=>{if(running)return;if(sourceAudio.paused){if(sourceKind==='lib'){listenMode=true;touchLastUsed()}const p=sourceAudio.play();if(p&&p.catch)p.catch(()=>{$('fileInfo').textContent='Wiedergabe nicht möglich. Bitte erneut tippen oder eine andere Datei wählen.'})}else sourceAudio.pause()};
+function pvShow(file,kind,d){const name=kind==='lib'&&currentMeta?currentMeta.name:kind==='mic'?'Eigene Aufnahme':kind==='practice'?'Übungston':(file.name||'Audiodatei');$('pvName').textContent=name;$('pvInfo').textContent=`${formatTime(d)}, ${parts} ${parts===1?'Stück':'Stücke'} zu je ${SEGMENT_SECONDS} s`;$('pvTotal').textContent=formatTime(d);
+  $('pvHead').textContent=kind==='lib'?'Anhören':'Vorschau: erst anhören';$('pvExtra').classList.toggle('hidden',kind!=='lib');placePreview();if(kind!=='lib')$('preview').classList.remove('hidden');pvUpdate()}
+function placePreview(){const pv=$('preview');let slot=null;if(sourceKind==='lib'&&currentAudioId!=null)slot=document.querySelector('.aitem[data-id="'+currentAudioId+'"] .aslot');if(!slot)slot=$('pvHome');if(sourceKind==='lib'&&slot===$('pvHome')){pv.classList.add('hidden')}if(pv.parentNode!==slot)slot.appendChild(pv)}
+$('pvSeek').addEventListener('click',e=>{if(running||!sourceDuration)return;const r=$('pvSeek').getBoundingClientRect();const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));try{sourceAudio.currentTime=x*sourceDuration}catch(_){}posTick(true)});
+$('pvBack').onclick=()=>{try{sourceAudio.currentTime=Math.max(0,sourceAudio.currentTime-15)}catch(e){}posTick(true)};
+$('pvFwd').onclick=()=>{try{sourceAudio.currentTime=Math.min(sourceDuration-0.5,sourceAudio.currentTime+15)}catch(e){}posTick(true)};
+$('pvTrain').onclick=()=>{const t=sourceAudio.currentTime||0;startTraining(Math.floor(t/SEGMENT_SECONDS))};
 $('practice').onclick=()=>{let sr=22050,dur=SEGMENT_SECONDS*2,buf=new Float32Array(sr*dur);for(let i=0;i<buf.length;i++){let t=i/sr;buf[i]=.16*Math.sin(2*Math.PI*(220+45*Math.sin(t*2))*t)*(Math.sin(t*2)>0?1:.5)}let wav=makeWav(buf,sr);setSource(new File([wav],'Uebungston.wav',{type:'audio/wav'}),'practice',dur)};
 function makeWav(samples,sr){let b=new ArrayBuffer(44+samples.length*2),v=new DataView(b);function s(o,t){for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))}s(0,'RIFF');v.setUint32(4,36+samples.length*2,true);s(8,'WAVE');s(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);s(36,'data');v.setUint32(40,samples.length*2,true);for(let i=0,o=44;i<samples.length;i++,o+=2){let x=Math.max(-1,Math.min(1,samples[i]));v.setInt16(o,x<0?x*32768:x*32767,true)}return b}
 
@@ -180,7 +234,8 @@ $('recordSource').onclick=async()=>{
       st.getTracks().forEach(t=>t.stop());srcRec=null;$('recordSource').innerHTML=recordSourceHTML;
       const type=rs.mimeType||mime||'audio/webm',blob=new Blob(cs,{type});
       if(!blob.size){$('fileInfo').textContent='Die Aufnahme war leer. Bitte erneut versuchen.';return}
-      setSource(new File([blob],'Eigene-Quelle.'+extFor(type),{type}),'mic',(Date.now()-t0)/1000)};
+      const f=new File([blob],'Eigene-Quelle.'+extFor(type),{type});setSource(f,'mic',(Date.now()-t0)/1000);
+      addFile(f,{prefill:'Eigene Aufnahme '+new Date().toLocaleString('de-CH',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),title:'Aufnahme speichern?',text:'Gib ihr einen Namen, dann findest du sie unter „Meine Audios“.',cancel:'Nicht speichern',keepSource:true})};
     srcRec=rs;rs.start();
     $('fileInfo').textContent='Aufnahme läuft – tippe auf „Aufnahme beenden“.';
     $('recordSource').innerHTML='<span class="ico">■</span><span>Aufnahme beenden<small>Quelle speichern</small></span>';
@@ -640,6 +695,7 @@ function updateNext(){$('nextBtn').textContent=currentPart>=parts-1?'Fertig':'We
 function idle(err){
   running=false;paused=false;activeCtl=null;
   $('startRound').disabled=false;$('nextBtn').disabled=false;$('repeatBtn').disabled=false;setPauseUI();
+  if(!err&&currentAudioId!=null){const nx=currentPart+1;if(nx>=parts)savePos(sourceDuration,true);else savePos(nx*SEGMENT_SECONDS,false)}
   if(!err){setStage('Bereit fürs nächste Stück');setStatus(voiceEnabled?'Sage „Weiter“ oder „Wiederholen“ – oder nutze die Tasten.':'Nutze „Weiter“ oder „Wiederholen“.')}
   try{$('afterCard').classList.remove('hidden');stopManual()}catch(e){}
   if(!err){try{showComparison()}catch(e){}}
@@ -650,6 +706,7 @@ async function runRound(){
   running=true;paused=false;sessionActive=true;keepAwake();
   $('startRound').disabled=true;$('nextBtn').disabled=false;$('repeatBtn').disabled=false;updateNext();setPauseUI();
   $('partLabel').textContent=`Stück ${currentPart+1} von ${parts}`;$('partLen').textContent=SEGMENT_SECONDS+' Sekunden';setTimer(SEGMENT_SECONDS);
+  try{$('trainName').textContent=(currentMeta&&sourceKind==='lib'?currentMeta.name+' · ':'')+'ab '+formatTime(currentPart*SEGMENT_SECONDS)+' von '+formatTime(sourceDuration);savePos(currentPart*SEGMENT_SECONDS,false)}catch(e){}
   syncVoice();
   try{$('compareCard').classList.add('hidden');$('afterCard').classList.add('hidden');$('muteHint').classList.add('hidden');hideVoiceBtn();cmpResult=null;startCmpJob(token)}catch(e){}
   for(const step of [playSource,recordSelf,playMy,replayOriginal]){
@@ -659,7 +716,8 @@ async function runRound(){
   }
   idle(false);
 }
-$('start').onclick=()=>{if(!sourceFile)return;try{listPlayer.pause();sourceAudio.pause()}catch(e){}currentPart=0;sessionCount=0;sessionActive=true;keepAwake();show('train');runRound()};
+function startTraining(part){if(!sourceFile||!sourceDuration)return;try{listPlayer.pause();sourceAudio.pause()}catch(e){}listenMode=false;currentPart=Math.max(0,Math.min(parts-1,part||0));sessionCount=0;sessionActive=true;keepAwake();show('train');runRound()}
+$('start').onclick=()=>{if(!sourceFile)return;let part=0;if(sourceKind==='lib'&&currentMeta&&!currentMeta.done)part=Math.floor((currentMeta.pos||0)/SEGMENT_SECONDS);startTraining(part)};
 $('startRound').onclick=()=>runRound();
 $('pauseBtn').onclick=()=>setPaused(!paused);
 $('repeatBtn').onclick=()=>runRound();
@@ -678,13 +736,17 @@ function openDB(){
   if(dbp)return dbp;
   dbp=new Promise((res,rej)=>{
     if(!window.indexedDB){rej(new Error('kein IndexedDB'));return}
-    const q=indexedDB.open('echo-db',1);
-    q.onupgradeneeded=()=>{q.result.createObjectStore('recordings',{keyPath:'id',autoIncrement:true})};
-    q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);q.onblocked=()=>rej(new Error('blockiert'));
+    const q=indexedDB.open('echo-db',2);
+    q.onupgradeneeded=()=>{const db=q.result;
+      if(!db.objectStoreNames.contains('recordings'))db.createObjectStore('recordings',{keyPath:'id',autoIncrement:true});
+      if(!db.objectStoreNames.contains('audios'))db.createObjectStore('audios',{keyPath:'id',autoIncrement:true});   // Bibliothek: nur Angaben (klein)
+      if(!db.objectStoreNames.contains('audioBlobs'))db.createObjectStore('audioBlobs',{keyPath:'id'})};             // Bibliothek: die Audiodaten
+    q.onsuccess=()=>{const db=q.result;db.onversionchange=()=>{try{db.close()}catch(e){}dbp=null};res(db)};q.onerror=()=>rej(q.error);
+    q.onblocked=()=>{try{libMsg('Echo ist noch in einem anderen Fenster offen. Bitte das andere Fenster schliessen.','err')}catch(e){}};
   });
   dbp.catch(()=>{dbFailed=true});return dbp;
 }
-function tx(mode,fn){return openDB().then(db=>new Promise((res,rej)=>{const t=db.transaction('recordings',mode);const r=fn(t.objectStore('recordings'));t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)}))}
+function tx(mode,fn,store='recordings'){return openDB().then(db=>new Promise((res,rej)=>{const t=db.transaction(store,mode);const r=fn(t.objectStore(store));t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)}))}
 function dbAdd(rec){return tx('readwrite',s=>s.add(rec)).catch(()=>{dbFailed=true;rec.id=--memId;memRecs.push(rec)})}
 function dbAll(){return tx('readonly',s=>s.getAll()).then(a=>a.concat(memRecs)).catch(()=>{dbFailed=true;return memRecs.slice()})}
 function dbDelete(id){if(id<0){memRecs=memRecs.filter(r=>r.id!==id);return Promise.resolve()}return tx('readwrite',s=>s.delete(id))}
@@ -719,6 +781,239 @@ async function renderRecordings(){
   $('storageWarn').textContent=warn;$('storageWarn').classList.toggle('hidden',!warn);
 }
 function renderRecordingsButtonsReset(){document.querySelectorAll('button[data-playing]').forEach(b=>{b.textContent='Abspielen';delete b.dataset.playing})}
+
+/* ---------- Meine Audios: dauerhafte Bibliothek (IndexedDB) ---------- */
+let currentAudioId=null,currentMeta=null,listenMode=false,pending=null,lastPosSave=0,persistAsked=false;
+function libTx(stores,mode,fn){return openDB().then(db=>new Promise((res,rej)=>{const t=db.transaction(stores,mode);let out;try{out=fn(t)}catch(e){rej(e);return}t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error('abgebrochen'))}))}
+function libAll(){return libTx(['audios'],'readonly',t=>t.objectStore('audios').getAll())}
+function libGet(id){return libTx(['audios'],'readonly',t=>t.objectStore('audios').get(id))}
+function libBlob(id){return libTx(['audioBlobs'],'readonly',t=>t.objectStore('audioBlobs').get(id)).then(r=>r?(r.blob||(r.buf?new Blob([r.buf],{type:r.type||'audio/mpeg'}):null)):null)}
+function libPut(meta){return libTx(['audios'],'readwrite',t=>t.objectStore('audios').put(meta))}
+function libDel(id){return libTx(['audios','audioBlobs'],'readwrite',t=>{t.objectStore('audios').delete(id);t.objectStore('audioBlobs').delete(id)})}
+function libAdd1(meta,rec){return libTx(['audios','audioBlobs'],'readwrite',t=>{const o={result:undefined};const r=t.objectStore('audios').add(Object.assign({},meta));r.onsuccess=()=>{o.result=r.result;rec.id=r.result;t.objectStore('audioBlobs').put(rec)};return o})}
+// Manche Browser (z. B. privater Modus) können keine Blobs speichern: dann als ArrayBuffer ablegen
+async function libAdd(meta,blob){
+  try{const id=await libAdd1(meta,{blob});meta.id=id;return id}
+  catch(e){if(e&&(e.name==='QuotaExceededError'||/quota/i.test(e.message||'')))throw e;
+    const id=await libAdd1(meta,{buf:await blob.arrayBuffer(),type:blob.type});meta.id=id;return id}
+}
+function requestPersist(){if(persistAsked)return;persistAsked=true;try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().then(()=>storageInfo()).catch(()=>{})}catch(e){}}
+function fmtMB(b){return b>=1e9?(b/1e9).toFixed(1).replace('.',',')+' GB':b>=1e6?Math.round(b/1e6)+' MB':Math.max(1,Math.round(b/1e3))+' KB'}
+function fmtDate(t){try{return new Date(t).toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'})}catch(e){return''}}
+function cleanName(n){n=String(n||'').replace(/\.[a-z0-9]{2,4}$/i,'').replace(/[_]+/g,' ').replace(/\s+/g,' ').trim();try{n=decodeURIComponent(n)}catch(e){}return n.slice(0,80)||'Mein Audio'}
+let libMsgTimer=null;
+function libMsg(t,kind){const b=$('libMsg');clearTimeout(libMsgTimer);if(!t){b.classList.add('hidden');return}b.classList.toggle('err',kind==='err');b.style.fontSize=kind==='err'?'14px':'';b.textContent=t;b.classList.remove('hidden');if(kind==='ok')libMsgTimer=setTimeout(()=>b.classList.add('hidden'),9000)}
+async function storageInfo(){
+  const el=$('storageInfo');let t='';
+  try{
+    if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();if(e&&e.usage!=null){t='Belegt: '+fmtMB(e.usage||0);if(e.quota)t+=' · noch frei für Echo: ca. '+fmtMB(Math.max(0,e.quota-e.usage))}}
+    if(navigator.storage&&navigator.storage.persisted){const ps=await navigator.storage.persisted();t+=(t?' · ':'')+(ps?'Dauerhaft gespeichert ✓':'Tipp: Echo über „Zum Home-Bildschirm“ öffnen, dann bleiben die Audios sicher gespeichert.')}
+  }catch(e){}
+  el.textContent=t;
+}
+/* Dialog (Name, Bestätigung, Hilfe) */
+let modalDone=null;
+function modal(o){
+  if(modalDone)modalDone({ok:false});
+  $('mTitle').textContent=o.title||'';$('mText').textContent=o.text||'';$('mText').classList.toggle('hidden',!o.text);
+  const inp=$('mInput');inp.classList.toggle('hidden',!o.input);inp.type=o.inputType||'text';inp.value=o.value||'';inp.placeholder=o.placeholder||'';
+  $('mHelp').innerHTML=o.help||'';$('mHelp').classList.toggle('hidden',!o.help);
+  $('mProg').classList.toggle('hidden',!o.progress);if(o.progress)modalProgress(0,'Wird vorbereitet …');
+  $('mOk').textContent=o.ok||'OK';$('mOk').className=o.danger?'danger':'primary';
+  $('mCancel').textContent=o.cancel||'Abbrechen';$('mCancel').classList.toggle('hidden',o.cancel===null);
+  $('modal').classList.remove('hidden');
+  if(o.input)setTimeout(()=>{try{inp.focus();inp.select()}catch(e){}},60);
+  return new Promise(res=>{modalDone=r=>{modalDone=null;$('modal').classList.add('hidden');res(r)}});
+}
+function modalProgress(p,text){$('mBar').style.width=Math.round(p*100)+'%';$('mProgText').textContent=text}
+$('mOk').onclick=()=>{if(!modalDone)return;if(!$('mInput').classList.contains('hidden')&&!$('mInput').value.trim()){$('mInput').focus();return}modalDone({ok:true,value:$('mInput').value.trim()})};
+$('mCancel').onclick=()=>{if(modalDone)modalDone({ok:false})};
+$('mInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('mOk').click()}});
+
+/* Hochladen: Name fragen, gleichzeitig umwandeln, dann speichern */
+function probeDuration(blob){return new Promise(res=>{const a=document.createElement('audio'),u=URL.createObjectURL(blob);let done=false;const fin=d=>{if(done)return;done=true;try{a.removeAttribute('src');a.load()}catch(e){}URL.revokeObjectURL(u);res(d)};a.preload='metadata';a.onloadedmetadata=()=>fin(isFinite(a.duration)?a.duration:0);a.onerror=()=>fin(0);setTimeout(()=>fin(0),10000);a.src=u})}
+async function convertOrKeep(f,job){
+  try{
+    if(!window.EchoConvert)throw new Error('Umwandler nicht geladen');
+    const r=await EchoConvert.convert(f,{signal:job.signal,onProgress:p=>jobProgress(job,p)});
+    return{blob:r.blob,duration:r.duration,converted:true,note:r.silent?'Hinweis: Die Tonspur scheint stumm zu sein.':''};
+  }catch(e){
+    if(e&&e.name==='Cancelled')throw e;
+    if(f.size<=200*1024*1024){const d=await probeDuration(f);if(d>0)return{blob:f,duration:d,converted:false,note:'Verkleinern war nicht möglich ('+(e&&e.message||e)+'), deshalb ist das Original gespeichert.'}}
+    throw e;
+  }
+}
+function jobProgress(job,p){
+  job.progress=p;const pct=Math.round(p*100),t='Wird umgewandelt … '+pct+' %';
+  if(job.dialogOpen)modalProgress(p,t+(pct<100?' · Bitte Echo geöffnet lassen.':''));
+  const row=document.querySelector('.aitem.pending');if(row){row.querySelector('.progress span').style.width=pct+'%';row.querySelector('.apos').textContent=t+' · Bitte Echo geöffnet lassen.'}
+}
+function errText(e){const n=e&&e.name,m=e&&e.message||String(e);if(n==='QuotaExceededError'||/quota/i.test(m))return'Kein Speicherplatz mehr frei. Lösche alte Audios in Echo oder mache auf dem iPhone Platz.';return m}
+async function addFile(f,opts={}){
+  if(pending){libMsg('Bitte warte kurz: Ein anderes Audio wird gerade umgewandelt.','err');return}
+  const prefill=opts.prefill||cleanName(f.name);
+  const job={signal:{cancelled:false},progress:0,name:prefill,dialogOpen:true};pending=job;libMsg('');
+  const hadAwake=!!wakeLock;if(!hadAwake)keepAwake();
+  job.conv=convertOrKeep(f,job);job.conv.catch(()=>{});
+  const big=f.size>8*1024*1024?' Grosse Dateien brauchen ein paar Minuten.':'';
+  const r=await modal({title:opts.title||'Wie soll dieses Audio heissen?',text:(opts.text||'Echo speichert es unter „Meine Audios“. Du musst es nie wieder hochladen.')+big,input:true,value:prefill,ok:'Speichern',cancel:opts.cancel||'Abbrechen',progress:true});
+  job.dialogOpen=false;
+  if(!r.ok){job.signal.cancelled=true;pending=null;if(!hadAwake&&!sessionActive)releaseAwake();renderLibrary();return}
+  job.name=r.value||prefill;await renderLibrary();jobProgress(job,job.progress);
+  let res;
+  try{res=await job.conv}catch(e){pending=null;if(!hadAwake&&!sessionActive)releaseAwake();await renderLibrary();if(!(e&&e.name==='Cancelled'))libMsg('„'+job.name+'“ konnte nicht umgewandelt werden: '+errText(e)+' Bitte eine andere Datei versuchen (z. B. mp3 oder m4a).','err');return}
+  const now=Date.now(),meta={name:job.name,duration:res.duration,size:res.blob.size,mime:res.blob.type||f.type||'',created:now,lastUsed:now,pos:0,done:false,origName:f.name||'',origSize:f.size||0,converted:res.converted};
+  let id=null;
+  try{id=await libAdd(meta,res.blob)}catch(e){pending=null;if(!hadAwake&&!sessionActive)releaseAwake();await renderLibrary();libMsg('Speichern nicht möglich: '+errText(e),'err');return}
+  pending=null;if(!hadAwake&&!sessionActive)releaseAwake();requestPersist();
+  await renderLibrary();
+  const row=document.querySelector('.aitem[data-id="'+id+'"]');if(row){row.classList.add('fresh');try{row.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(e){}}
+  const saved=res.converted&&f.size>res.blob.size*1.2?' Von '+fmtMB(f.size)+' auf '+fmtMB(res.blob.size)+' verkleinert.':'';
+  libMsg('„'+job.name+'“ ist gespeichert ✓'+saved+(res.note?' '+res.note:''),res.note&&!res.converted?'err':'ok');
+  if(opts.keepSource){try{await loadAudio(id)}catch(e){}}
+}
+
+/* Liste */
+function posText(m){if(m.done)return'Fertig ✓ – du hast alles geschafft.';if(!(m.pos>0.5))return'Noch nicht angefangen';return'Weiter bei <b>'+formatTime(m.pos)+'</b> · '+Math.min(99,Math.round(m.pos/Math.max(1,m.duration)*100))+' % geschafft'}
+function mkBtn(text,cls,fn){const b=document.createElement('button');b.type='button';b.textContent=text;if(cls)b.className=cls;b.onclick=fn;return b}
+function itemRow(m){
+  const row=document.createElement('div');row.className='aitem';row.dataset.id=m.id;
+  const nm=document.createElement('div');nm.className='aname';nm.textContent=m.name;
+  const meta=document.createElement('div');meta.className='ameta tiny';meta.textContent=formatTime(m.duration)+' · '+fmtDate(m.created)+' · '+fmtMB(m.size||0);
+  const pr=document.createElement('div');pr.className='progress';const sp=document.createElement('span');sp.style.width=(m.done?100:Math.min(100,(m.pos||0)/Math.max(1,m.duration)*100))+'%';pr.append(sp);
+  const ps=document.createElement('div');ps.className='apos';ps.innerHTML=posText(m);
+  const b1=document.createElement('div');b1.className='abtns';
+  const main=m.done||!(m.pos>0.5)?(m.done?'▶ Nochmals von vorne':'▶ Training starten'):'▶ Weiter bei '+formatTime(m.pos);
+  b1.append(mkBtn(main,'primary go',()=>trainAudio(m.id,!!m.done)));
+  if(m.pos>0.5&&!m.done)b1.append(mkBtn('⟲ Von vorne','restart',()=>trainAudio(m.id,true)));
+  const b2=document.createElement('div');b2.className='abtns small';
+  b2.append(mkBtn('🎧 Anhören','listen',()=>listenAudio(m.id)),mkBtn('✎ Umbenennen','rename',()=>renameAudio(m.id)),mkBtn('🗑 Löschen','del',()=>deleteAudio(m.id)));
+  const slot=document.createElement('div');slot.className='aslot';
+  row.append(nm,meta,pr,ps,b1,b2,slot);return row;
+}
+function pendingRow(){
+  const row=document.createElement('div');row.className='aitem pending';
+  const nm=document.createElement('div');nm.className='aname';nm.textContent=pending.name;
+  const pr=document.createElement('div');pr.className='progress';const sp=document.createElement('span');sp.style.width=Math.round(pending.progress*100)+'%';pr.append(sp);
+  const ps=document.createElement('div');ps.className='apos';ps.textContent='Wird umgewandelt … '+Math.round(pending.progress*100)+' %';
+  const b=document.createElement('div');b.className='abtns small';b.append(mkBtn('Abbrechen','',()=>{if(pending)pending.signal.cancelled=true}));
+  row.append(nm,pr,ps,b);return row;
+}
+let renderSeq=0;
+async function renderLibrary(){
+  const seq=++renderSeq;let list=[];
+  try{list=await libAll()}catch(e){if(seq!==renderSeq)return;$('libList').innerHTML='<p class="empty">Dauerhaftes Speichern ist in diesem Browser nicht möglich. Bitte Echo in Safari öffnen (nicht im privaten Modus).</p>';return}
+  if(seq!==renderSeq)return;
+  list.sort((a,b)=>(b.lastUsed||b.created||0)-(a.lastUsed||a.created||0));
+  const box=$('libList'),pv=$('preview');if(box.contains(pv))$('pvHome').appendChild(pv);
+  box.innerHTML='';
+  if(pending&&!pending.dialogOpen)box.append(pendingRow());
+  if(!list.length&&!(pending&&!pending.dialogOpen)){const p=document.createElement('p');p.className='empty';p.textContent='Noch keine Audios gespeichert. Tippe oben auf „Audio oder Video hochladen“. Danach bleibt alles hier – du musst nichts mehr neu hochladen und kannst immer dort weitermachen, wo du aufgehört hast.';box.append(p)}
+  list.forEach(m=>{if(currentMeta&&m.id===currentAudioId)m=currentMeta;box.append(itemRow(m))});
+  if(sourceKind==='lib'&&currentAudioId!=null&&sourceDuration>0&&!$('preview').classList.contains('hidden'))placePreview();
+  else if(sourceKind==='lib')$('preview').classList.add('hidden');
+  storageInfo();
+}
+function updateRow(m){const row=document.querySelector('.aitem[data-id="'+m.id+'"]');if(!row)return;row.querySelector('.progress span').style.width=(m.done?100:Math.min(100,(m.pos||0)/Math.max(1,m.duration)*100))+'%';row.querySelector('.apos').innerHTML=posText(m)}
+
+/* Laden, Training, Anhören, Position */
+async function loadAudio(id){
+  if(currentAudioId===id&&sourceKind==='lib'&&sourceFile&&sourceDuration>0)return currentMeta;
+  const [m,blob]=await Promise.all([libGet(id),libBlob(id)]);
+  if(!m||!blob)throw new Error('nicht gefunden');
+  const type=blob.type||m.mime||'audio/mpeg',ext=/mpeg|mp3/.test(type)?'mp3':/quicktime/.test(type)?'mov':/mp4|m4a|aac/.test(type)?'m4a':/wav/.test(type)?'wav':/ogg/.test(type)?'ogg':'webm';
+  const file=new File([blob],cleanName(m.name)+'.'+ext,{type});
+  currentAudioId=id;currentMeta=m;
+  await new Promise((res,rej)=>setSource(file,'lib',m.duration||0,res,rej));
+  currentAudioId=id;currentMeta=m;
+  return m;
+}
+async function trainAudio(id,fromStart){
+  try{libMsg('');const m=await loadAudio(id);const pos=fromStart||m.done?0:(m.pos||0);if(fromStart||m.done){m.done=false;m.pos=0}startTraining(Math.floor(pos/SEGMENT_SECONDS))}
+  catch(e){libMsg('Dieses Audio lässt sich gerade nicht öffnen ('+(e&&e.message||e)+').','err')}
+}
+async function listenAudio(id){
+  try{
+    libMsg('');if(currentAudioId===id&&sourceKind==='lib'&&listenMode&&!sourceAudio.paused){sourceAudio.pause();return}
+    const m=await loadAudio(id);listenMode=true;
+    const at=m.done?0:(m.pos||0);try{sourceAudio.currentTime=Math.min(at,Math.max(0,sourceDuration-0.5))}catch(e){}
+    placePreview();$('preview').classList.remove('hidden');pvUpdate();touchLastUsed();
+    const p=sourceAudio.play();if(p&&p.catch)p.catch(e=>{window.__lastPlayErr=e&&(e.name+': '+e.message);if(!(e&&e.name==='AbortError'))libMsg('Tippe auf „Anhören“, um abzuspielen.')});
+  }catch(e){libMsg('Dieses Audio lässt sich gerade nicht öffnen ('+(e&&e.message||e)+').','err')}
+}
+function touchLastUsed(){if(!currentMeta)return;currentMeta.lastUsed=Date.now();libPut(Object.assign({},currentMeta)).catch(()=>{})}
+function savePos(sec,done){
+  if(currentAudioId==null||!currentMeta||sourceKind!=='lib')return;
+  const d=currentMeta.duration||sourceDuration||0;
+  currentMeta.pos=Math.max(0,Math.min(d,sec||0));currentMeta.done=!!done;currentMeta.lastUsed=Date.now();
+  lastPosSave=Date.now();libPut(Object.assign({},currentMeta)).catch(()=>{});updateRow(currentMeta);
+}
+function posTick(force){
+  if(sourceKind!=='lib'||sessionActive||running||!listenMode)return;
+  if(!force&&Date.now()-lastPosSave<2000)return;
+  const t=sourceAudio.currentTime||0,d=sourceDuration||0;
+  savePos(t,false);
+}
+sourceAudio.addEventListener('timeupdate',()=>posTick(false));
+sourceAudio.addEventListener('pause',()=>posTick(true));
+sourceAudio.addEventListener('seeked',()=>posTick(true));
+sourceAudio.addEventListener('ended',()=>{if(sourceKind==='lib'&&listenMode&&!sessionActive){if(currentMeta&&(currentMeta.pos||0)>=sourceDuration-30)savePos(sourceDuration,true);listenMode=false}}); // nur als fertig markieren, wenn wirklich bis kurz vor Schluss gehört
+window.addEventListener('pagehide',()=>posTick(true));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')posTick(true)});
+async function renameAudio(id){
+  let m;try{m=await libGet(id)}catch(e){return}if(!m)return;
+  const r=await modal({title:'Neuer Name',input:true,value:m.name,ok:'Speichern'});
+  if(!r.ok||!r.value)return;m.name=r.value.slice(0,120);
+  if(currentMeta&&currentAudioId===id){currentMeta.name=m.name;$('pvName').textContent=m.name}
+  try{await libPut(currentMeta&&currentAudioId===id?Object.assign({},currentMeta):m)}catch(e){libMsg('Umbenennen nicht möglich: '+errText(e),'err')}
+  renderLibrary();
+}
+async function deleteAudio(id){
+  let m;try{m=await libGet(id)}catch(e){return}if(!m)return;
+  const r=await modal({title:'Audio löschen?',text:'„'+m.name+'“ wird von diesem Gerät gelöscht. Das kann man nicht rückgängig machen. Deine eigenen Aufnahmen bleiben erhalten.',ok:'Löschen',danger:true});
+  if(!r.ok)return;
+  if(currentAudioId===id){try{sourceAudio.pause();sourceAudio.removeAttribute('src');sourceAudio.load()}catch(e){}if(sourceUrl){URL.revokeObjectURL(sourceUrl);sourceUrl=null}sourceFile=null;sourceDuration=0;currentAudioId=null;currentMeta=null;listenMode=false;sourceKind='file';$('preview').classList.add('hidden');$('pvHome').appendChild($('preview'));$('start').disabled=true}
+  try{await libDel(id)}catch(e){libMsg('Löschen nicht möglich: '+errText(e),'err')}
+  await renderLibrary();libMsg('„'+m.name+'“ ist gelöscht.','ok');
+}
+
+/* Podcast-Link */
+const PODCAST_HELP='<ol><li>Öffne die <b>Webseite des Podcasts</b> in Safari.</li><li>Halte den Finger auf den <b>Download-Link</b> der Folge (oft „Download“ oder „mp3“) und wähle <b>„Verlinkte Datei laden“</b>.</li><li>Die Folge liegt jetzt in der App <b>„Dateien“</b> im Ordner <b>„Downloads“</b>.</li><li>Zurück in Echo: <b>„Audio oder Video hochladen“</b> → <b>„Durchsuchen“</b> → <b>„Downloads“</b> → Folge antippen.</li></ol><span class="tiny">Folgen aus der App „Podcasts“ von Apple oder aus Spotify lassen sich leider nicht herausholen. Suche die Folge auf der Webseite des Podcasts.</span>';
+function podcastHelp(reason){return modal({title:'So klappt es trotzdem',text:reason,help:PODCAST_HELP,ok:'Verstanden',cancel:null})}
+let podAbort=null;
+$('podcastBtn').onclick=async()=>{
+  if(pending){libMsg('Bitte warte kurz: Ein anderes Audio wird gerade umgewandelt.','err');return}
+  const r=await modal({title:'Podcast-Link einfügen',text:'Füge den direkten Link zu einer Folge ein. Er endet meistens auf „.mp3“. Echo lädt die Folge und speichert sie.',input:true,inputType:'url',placeholder:'https://…/folge.mp3',ok:'Laden'});
+  if(!r.ok||!r.value)return;
+  let url=r.value.trim();if(!/^https?:\/\//i.test(url))url='https://'+url;
+  let u;try{u=new URL(url)}catch(e){libMsg('Das sieht nicht wie ein Link aus. Bitte den ganzen Link einfügen (beginnt mit https://).','err');return}
+  if(/(^|\.)podcasts\.apple\.com$|(^|\.)spotify\.com$|(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(u.hostname)){podcastHelp('Das ist ein Link zu einer Podcast-App, nicht direkt zur Audiodatei.');return}
+  if(location.protocol==='https:'&&u.protocol==='http:'){u.protocol='https:'}
+  let blob=null,type='';
+  try{
+    podAbort=window.AbortController?new AbortController():null;
+    libMsg('Folge wird geladen …');
+    const resp=await fetch(u.href,{signal:podAbort&&podAbort.signal,mode:'cors',credentials:'omit'});
+    if(!resp.ok)throw Object.assign(new Error('Der Server antwortet mit Fehler '+resp.status+'.'),{plain:true});
+    type=(resp.headers.get('content-type')||'').toLowerCase();
+    if(/text\/html|application\/(rss|xml)|text\/xml/.test(type))throw Object.assign(new Error(/html/.test(type)?'Der Link führt zu einer Webseite, nicht direkt zur Audiodatei.':'Das ist ein Podcast-Feed, nicht eine einzelne Folge.'),{help:true});
+    const total=+resp.headers.get('content-length')||0;
+    if(resp.body&&resp.body.getReader){
+      const rd=resp.body.getReader(),parts=[];let got=0,last=0;
+      for(;;){const x=await rd.read();if(x.done)break;parts.push(x.value);got+=x.value.length;if(Date.now()-last>300){last=Date.now();libMsg('Folge wird geladen … '+fmtMB(got)+(total?' von '+fmtMB(total)+' ('+Math.round(got/total*100)+' %)':''))}}
+      blob=new Blob(parts,{type});
+    }else blob=await resp.blob();
+  }catch(e){
+    libMsg('');
+    if(e&&e.help){podcastHelp(e.message);return}
+    if(e&&e.plain){podcastHelp(e.message+' Vielleicht ist der Link abgelaufen.');return}
+    podcastHelp('Dieser Podcast erlaubt das direkte Laden in Echo leider nicht (oder es gibt gerade kein Internet).');return;
+  }finally{podAbort=null}
+  libMsg('');
+  if(!blob||blob.size<2000){podcastHelp('Unter diesem Link ist keine Audiodatei.');return}
+  let fname=decodeURIComponent((u.pathname.split('/').pop()||'Podcast-Folge'));if(!/\.[a-z0-9]{2,4}$/i.test(fname))fname+='.mp3';
+  addFile(new File([blob],fname,{type:type||'audio/mpeg'}),{prefill:cleanName(fname),title:'Wie soll diese Folge heissen?'});
+};
 
 /* ---------- Sprachsteuerung (optional) ---------- */
 function voiceWanted(){return voiceEnabled&&!!SpeechRecognitionAPI&&!recogFatal&&!voiceHold&&!(micBusy&&!recVoiceOK)&&!document.hidden&&!$('train').classList.contains('hidden')}
@@ -803,6 +1098,6 @@ let swReady=false;
 try{if('serviceWorker'in navigator&&location.protocol.indexOf('http')===0){navigator.serviceWorker.register('./sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{swReady=true;netBadge()}).catch(()=>{})}}catch(e){}
 function netBadge(){$('offlineBadge').textContent=!navigator.onLine?'Offline':swReady?'Offline bereit':'Online'}
 netBadge();window.addEventListener('offline',netBadge);window.addEventListener('online',netBadge);
-try{renderRecordings().catch(()=>{})}catch(e){}updateVoiceHint();
+try{renderRecordings().catch(()=>{})}catch(e){}try{renderLibrary().catch(()=>{})}catch(e){}updateVoiceHint();
 
 </script></body></html>
