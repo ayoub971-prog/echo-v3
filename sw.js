@@ -1,4 +1,4 @@
-const CACHE = 'echo-shell-v7';
+const CACHE = 'echo-shell-v8';
 const CORE = [
   './', './index.html', './manifest.webmanifest',
   './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png',
