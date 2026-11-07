@@ -9,6 +9,7 @@ async function run(n,cancelAt){
   let plays=0,stageToken=1,ctx={};
   const env={S:{listen:n},SEGMENT_SECONDS:5,sourceDuration:12,currentPart:2,segLen:0,stageToken,canRecord:true,CAP_TEXT:'',activeCtl:null};
   const f=new Function('E',`with(E){${src.replace('async function playSource','E.playSource=async function')};}`);
+  env.partStart=p=>p*env.SEGMENT_SECONDS;env.partEnd=p=>Math.min(env.sourceDuration,(p+1)*env.SEGMENT_SECONDS);// v13: grid helpers (classic grid)
   env.$=()=>({set textContent(v){}});env.setStatus=()=>{};env.finish=()=>{};env.elCtl=()=>({});
   env.sourceAudio={pause(){},set currentTime(v){env.lastSeek=v}};
   env.playMedia=()=>{plays++;if(plays===cancelAt)env.stageToken++};
