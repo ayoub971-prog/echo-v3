@@ -137,3 +137,26 @@ Feste Bedienleiste unten im Trainingsbildschirm (auch auf kleinen Handys ohne Sc
 Test (Mac/Linux): node test/v6.js (Playwright, simulierte Zustände suspended/interrupted, NotAllowedError, Dekodierfehler, Tracks gestoppt).
 
 lame.min.js: lamejs 1.2.1 (LGPL-3.0), unveraendert, fuer die MP3-Umwandlung im Browser.
+
+
+WIE OFT ANHÖREN (für Wartung durch Gemini/ChatGPT)
+- Einstellung S.listen (1–10, Standard 1) in localStorage 'echo.settings'.
+- Regler: r_listen (Einstellungen), r_quickListen (Startseite), r_trainListen (Training).
+- playSource() in index.html spielt das aktuelle Stück S.listen-mal; danach laufen
+  Pause, Signalton, Aufnahme usw. unverändert genau einmal (runRound).
+- Abbruch über stageToken: jede neue Runde/Stopp beendet die Schleife sofort.
+- Stücklänge: bestehende Regler r_seg / r_quick / r_train (1–30 s).
+- Nach Änderungen CACHE in sw.js erhöhen (jetzt echo-shell-v11).
+
+SPRECHZEIT (für Wartung durch Gemini/ChatGPT)
+- S.rec (1–60 s, Regler r_rec), S.recSame (= Stücklänge, Standard), S.recFree (selbst beenden).
+- recFree: recordAttempt(token,null) zählt hoch; Knopf recDoneBtn / hfRecDone setzt sig.finish.
+  Die Aufnahme ist begrenzt: spätestens nach FREE_REC_MAX_SECONDS=120 stoppt sie normal (Handy-Speicher).
+- Abbruch über stageToken; eine abgebrochene Runde fasst danach weder Audio, Fertig-Knopf noch
+  Mikrofon-Zustand (micOwner) der neueren Runde an.
+- CACHE in sw.js jetzt echo-shell-v12.
+
+Regressionstests (Node.js, keine Zusatzpakete):
+node tests/listen-repeats.js index.html
+node tests/speaking-time.js index.html
+node tests/round-cancellation.js index.html
