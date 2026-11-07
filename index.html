@@ -101,7 +101,7 @@ button.repeatbig{width:100%;min-height:62px;font-size:19px;font-weight:700;backg
 <button class="choice" id="recordSource" type="button"><span class="ico">🎙</span><span>Eigene Aufnahme<small>Eine Quelle direkt aufnehmen und auf Wunsch speichern</small></span></button>
 <button class="choice" id="practice" type="button"><span class="ico">♫</span><span>Übungston<small>Zum Testen des Ablaufs</small></span></button>
 <div id="pvHome"></div>
-<div id="preview" class="preview hidden"><h3 id="pvHead">Vorschau: erst anhören</h3><span class="pvmeta"><b id="pvName">-</b><span id="pvInfo" class="tiny"></span></span><button id="pvPlay" class="pvplay" type="button">Anhören</button><div class="progress" id="pvSeek" title="Antippen zum Springen"><span id="pvBar"></span></div><div class="roundlabel"><span id="pvTime">00:00</span><span id="pvTotal">00:00</span></div><div class="pvrow hidden" id="pvExtra"><button type="button" id="pvBack">↺ 15 s</button><button type="button" id="pvFwd">15 s ↻</button><button type="button" id="pvTrain" class="primary">Training ab hier</button></div></div>
+<div id="preview" class="preview hidden"><h3 id="pvHead">Vorschau: erst anhören</h3><span class="pvmeta"><b id="pvName">-</b><span id="pvInfo" class="tiny"></span></span><button id="pvPlay" class="pvplay" type="button">Anhören</button><div class="progress" id="pvSeek" title="Antippen zum Springen"><span id="pvBar"></span></div><div class="roundlabel"><span id="pvTime">00:00</span><span id="pvTotal">00:00</span></div><div class="sl" id="pvPosRow"><div class="slh"><span>📍 Ab welcher Stelle üben?</span><b id="v_pos">00:00</b></div><input type="range" class="bigrange" id="r_pos" min="0" max="0" step="1" value="0" aria-label="Startstelle fürs Training (Minuten:Sekunden)"><p class="tiny" style="margin:6px 0 0">Regler schieben, mit „Anhören“ prüfen, dann:</p><button type="button" id="pvFromHere" class="primary mainbtn">🎯 Ab hier trainieren</button></div><div class="pvrow hidden" id="pvExtra"><button type="button" id="pvBack">↺ 15 s</button><button type="button" id="pvFwd">15 s ↻</button><button type="button" id="pvTrain" class="primary">Training ab hier</button></div></div>
 <div class="sl" id="quickSegRow"><div class="slh"><span>✂️ Stücklänge</span><b id="v_quick"></b></div><input type="range" class="bigrange" id="r_quick" min="1" max="30" step="1" aria-label="Stücklänge in Sekunden"></div>
 <div class="sl"><div class="slh"><span>🔁 Wie oft anhören <small>vor dem Nachsprechen</small></span><b id="v_quickListen"></b></div><input type="range" class="bigrange" id="r_quickListen" min="1" max="10" step="1" aria-label="Wie oft das Stück vor dem Nachsprechen abgespielt wird"></div>
 <button class="primary mainbtn" id="start" disabled>Training starten →</button>
@@ -247,13 +247,21 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 
 /* ---------- Quelle ---------- */
 let sourceKind='file',srcGen=0;
-function calcParts(){const d=sourceDuration;if(!d)return;parts=Math.max(1,Math.ceil(d/SEGMENT_SECONDS));if(parts>1&&d-(parts-1)*SEGMENT_SECONDS<SKIP_REMAINDER_SECONDS)parts--} // winziger Rest am Ende wird übersprungen
+/* Stück-Raster mit Versatz (exakte Startstelle): Stücke beginnen bei 0, segOffset, segOffset+S, segOffset+2S …
+   segOffset=0 → altes Raster 0, S, 2S … . Einzige Quelle für Start/Ende eines Stücks: partStart/partEnd. */
+let segOffset=0;
+function partStart(p){return segOffset>0?(p<=0?0:segOffset+(p-1)*SEGMENT_SECONDS):p*SEGMENT_SECONDS}
+function partEnd(p){return Math.min(sourceDuration,partStart(p+1))}
+function partOf(t){t=Math.max(0,(+t||0)+1e-6);return segOffset>0?(t<segOffset?0:1+Math.floor((t-segOffset)/SEGMENT_SECONDS)):Math.floor(t/SEGMENT_SECONDS)}
+function setGridAt(t){const L=SEGMENT_SECONDS;let o=Math.round(((((+t||0)%L)+L)%L)*100)/100;if(o>=L-0.01)o=0;segOffset=o;calcParts()}
+function partAt(t){setGridAt(t);return Math.max(0,Math.min(parts-1,partOf(t)))}   // Raster so legen, dass ein Stück genau bei t beginnt
+function calcParts(){const d=sourceDuration;if(!d)return;parts=Math.max(1,partOf(d-1e-3)+1);if(parts>1&&d-partStart(parts-1)<SKIP_REMAINDER_SECONDS)parts--} // winziger Rest am Ende wird übersprungen
 function srcMsg(t){if(sourceKind==='lib')libMsg(t,'err');else $('fileInfo').textContent=t}
 function setSource(file,kind='file',known=0,onReady,onFail){
   try{if(listenMode)posTick(true)}catch(e){}
   if(kind!=='lib'){currentAudioId=null;currentMeta=null;SEGMENT_SECONDS=S.seg}
   sourceKind=kind;listenMode=false;
-  sourceFile=file;$('start').disabled=true;sourceDuration=0;try{sourceAudio.pause()}catch(e){}$('preview').classList.add('hidden');
+  sourceFile=file;$('start').disabled=true;sourceDuration=0;segOffset=0;try{sourceAudio.pause()}catch(e){}$('preview').classList.add('hidden');
   if(sourceUrl)URL.revokeObjectURL(sourceUrl);sourceUrl=URL.createObjectURL(file);
   const a=sourceAudio;a.preload='metadata';let tries=0;const gen=++srcGen;
   a.onerror=()=>{if(gen!==srcGen||a.getAttribute('src')!==sourceUrl)return;
@@ -274,7 +282,7 @@ function setSource(file,kind='file',known=0,onReady,onFail){
 $('uploadBtn').onclick=()=>{try{$('audioFile').click()}catch(e){$('fileInfo').textContent='Die Dateiauswahl lässt sich in diesem Browser nicht öffnen. Bitte in Chrome oder Safari öffnen.'}};
 $('audioFile').addEventListener('change',e=>{let f=(e.target.files||[])[0];try{e.target.value=''}catch(_){}if(f)addFile(f)});
 /* Vorschau-Player (Quelle anhören, bevor das Training startet) */
-function pvUpdate(){const d=sourceDuration||0,t=sourceAudio.currentTime||0;$('pvTime').textContent=formatTime(t);$('pvBar').style.width=(d?Math.min(100,t/d*100):0)+'%';$('pvPlay').textContent=sourceAudio.paused?'Anhören':'Pause'}
+function pvUpdate(){const d=sourceDuration||0,t=sourceAudio.currentTime||0;$('pvTime').textContent=formatTime(t);$('pvBar').style.width=(d?Math.min(100,t/d*100):0)+'%';$('pvPlay').textContent=sourceAudio.paused?'Anhören':'Pause';posSync()}
 ['play','pause','ended','timeupdate','seeked'].forEach(ev=>sourceAudio.addEventListener(ev,pvUpdate));
 sourceAudio.addEventListener('ended',()=>{if(!running&&!shadow){try{sourceAudio.currentTime=0}catch(e){}}});
 $('pvPlay').onclick=()=>{if(running)return;if(sourceAudio.paused){if(sourceKind==='lib'){listenMode=true;touchLastUsed()}const p=sourceAudio.play();if(p&&p.catch)p.catch(()=>{$('fileInfo').textContent='Wiedergabe nicht möglich. Bitte erneut tippen oder eine andere Datei wählen.'})}else sourceAudio.pause()};
@@ -284,7 +292,14 @@ function placePreview(){const pv=$('preview');let slot=null;if(sourceKind==='lib
 $('pvSeek').addEventListener('click',e=>{if(running||!sourceDuration)return;const r=$('pvSeek').getBoundingClientRect();const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));try{sourceAudio.currentTime=x*sourceDuration}catch(_){}posTick(true)});
 $('pvBack').onclick=()=>{try{sourceAudio.currentTime=Math.max(0,sourceAudio.currentTime-15)}catch(e){}posTick(true)};
 $('pvFwd').onclick=()=>{try{sourceAudio.currentTime=Math.min(sourceDuration-0.5,sourceAudio.currentTime+15)}catch(e){}posTick(true)};
-$('pvTrain').onclick=()=>{const t=sourceAudio.currentTime||0;startTraining(Math.floor(t/SEGMENT_SECONDS))};
+$('pvTrain').onclick=()=>{startTraining(partAt(Math.floor(sourceAudio.currentTime||0)))};
+// Startstellen-Regler: nutzt dieselbe Position wie der Vorschau-Player (sourceAudio.currentTime / gespeicherte Stelle), kein eigener Zustand
+let posDrag=false;
+function posMax(){return Math.max(0,Math.floor((sourceDuration||0)-1))}
+function posSync(){const r=$('r_pos');if(!r)return;const d=sourceDuration||0;r.max=posMax();if(!posDrag){r.value=Math.min(posMax(),Math.floor(sourceAudio.currentTime||0));fillRange(r);$('v_pos').textContent=formatTime(+r.value)+' / '+formatTime(d)}}
+$('r_pos').addEventListener('input',()=>{posDrag=true;fillRange($('r_pos'));$('v_pos').textContent=formatTime(+$('r_pos').value)+' / '+formatTime(sourceDuration||0)});
+$('r_pos').addEventListener('change',()=>{posDrag=false;if(running||!sourceDuration)return;try{sourceAudio.currentTime=+$('r_pos').value}catch(e){}posTick(true);posSync()});
+$('pvFromHere').onclick=()=>{if(!sourceFile||!sourceDuration)return;posDrag=false;startTraining(partAt(+$('r_pos').value))};
 $('practice').onclick=()=>{let sr=22050,dur=SEGMENT_SECONDS*2,buf=new Float32Array(sr*dur);for(let i=0;i<buf.length;i++){let t=i/sr;buf[i]=.16*Math.sin(2*Math.PI*(220+45*Math.sin(t*2))*t)*(Math.sin(t*2)>0?1:.5)}let wav=makeWav(buf,sr);setSource(new File([wav],'Uebungston.wav',{type:'audio/wav'}),'practice',dur)};
 function makeWav(samples,sr){let b=new ArrayBuffer(44+samples.length*2),v=new DataView(b);function s(o,t){for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))}s(0,'RIFF');v.setUint32(4,36+samples.length*2,true);s(8,'WAVE');s(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);s(36,'data');v.setUint32(40,samples.length*2,true);for(let i=0,o=44;i<samples.length;i++,o+=2){let x=Math.max(-1,Math.min(1,samples[i]));v.setInt16(o,x<0?x*32768:x*32767,true)}return b}
 
@@ -450,7 +465,7 @@ async function extractOriginalSegment(file,start,end){
   throw new Error('Datei zu lang für den Vergleich');
 }
 function startCmpJob(token){
-  const start=currentPart*SEGMENT_SECONDS,end=Math.min(sourceDuration,start+SEGMENT_SECONDS),file=sourceFile;
+  const start=partStart(currentPart),end=partEnd(currentPart),file=sourceFile;
   cmpResult=null;
   const job={token,promise:null};
   job.promise=(async()=>{try{const seg=await extractOriginalSegment(file,start,end);return analyzeSignal(seg.data,seg.sr)}catch(e){return{error:e&&e.message||String(e)}}})();
@@ -501,7 +516,7 @@ $('cmpDetails').addEventListener('toggle',()=>{cmpOpen=$('cmpDetails').open;if(c
 /* ---------- Ablauf einer Runde ----------
    Reihenfolge (einstellbar): Original → Pause → Signalton → Aufnahme → Pause → deine Stimme → (Original nochmals) → nächstes Stück */
 async function playSource(token){
-  const start=currentPart*SEGMENT_SECONDS,end=Math.min(sourceDuration,start+SEGMENT_SECONDS);
+  const start=partStart(currentPart),end=partEnd(currentPart);
   if(start>=sourceDuration){finish();return false}
   segLen=Math.max(1,end-start);$('partLen').textContent=Math.round(segLen)+' Sekunden';
   try{sourceAudio.currentTime=start}catch(e){}
@@ -774,7 +789,7 @@ async function playMy(token){
 }
 async function replayOriginal(token){
   if(!S.repeatOrig)return true;
-  const start=currentPart*SEGMENT_SECONDS,end=Math.min(sourceDuration,start+SEGMENT_SECONDS),len=Math.max(1,end-start);
+  const start=partStart(currentPart),end=partEnd(currentPart),len=Math.max(1,end-start);
   try{sourceAudio.currentTime=start}catch(e){}
   activeCtl=elCtl(sourceAudio);setStatus('Zum Vergleich: das Original noch einmal.');
   playMedia(sourceAudio);
@@ -790,7 +805,7 @@ const MAN_LABEL={orig:'Original anhören',voice:'Meine Stimme anhören',both:'Be
 function stopManual(){manualToken++;manualKind=null;try{sourceAudio.pause()}catch(e){}if(!running){try{myPlayback.pause()}catch(e){}}const b=manualButtons();for(const k in b){b[k].textContent=MAN_LABEL[k];b[k].disabled=!!running||(k!=='orig'&&!voicePrep)}}
 function waitUntil(token,test,maxMs){return new Promise(res=>{const t0=performance.now(),iv=setInterval(()=>{if(token!==manualToken){clearInterval(iv);res(false)}else if(test()||performance.now()-t0>maxMs){clearInterval(iv);res(true)}},100)})}
 async function manualOriginal(token){
-  const start=currentPart*SEGMENT_SECONDS,end=Math.min(sourceDuration,start+SEGMENT_SECONDS);
+  const start=partStart(currentPart),end=partEnd(currentPart);
   try{sourceAudio.currentTime=start}catch(e){}
   try{await sourceAudio.play()}catch(e){setStatus('Wiedergabe nicht möglich: '+voiceErrText(e));return false}
   const ok=await waitUntil(token,()=>sourceAudio.currentTime>=end-0.05||sourceAudio.ended,(end-start+2)*1000);
@@ -842,7 +857,7 @@ function doPrev(){if(shadow){seekShadow(Math.max(0,currentPart-1));return}curren
 function idle(err){
   running=false;paused=false;activeCtl=null;
   $('startRound').disabled=false;$('nextBtn').disabled=false;$('repeatBtn').disabled=false;setPauseUI();
-  if(!err&&currentAudioId!=null){const nx=currentPart+1;if(nx>=parts)savePos(sourceDuration,true);else savePos(nx*SEGMENT_SECONDS,false)}
+  if(!err&&currentAudioId!=null){const nx=currentPart+1;if(nx>=parts)savePos(sourceDuration,true);else savePos(partStart(nx),false)}
   if(!err){setStage('Bereit fürs nächste Stück');setStatus(voiceEnabled?'Sage „Weiter“ oder „Wiederholen“ – oder nutze die Tasten.':'Tippe auf „Nächste“ oder „🔁 Wiederholen“.')}
   try{$('afterCard').classList.remove('hidden');stopManual()}catch(e){}
   if(!err){try{showComparison()}catch(e){}}
@@ -855,7 +870,7 @@ async function runRound(){
   roundVoice=null;
   $('startRound').disabled=true;$('nextBtn').disabled=false;$('repeatBtn').disabled=false;updateNext();setPauseUI();
   const pl=`Stück ${currentPart+1} von ${parts}`;$('partLabel').textContent=pl;$('hfPart').textContent=pl;$('partLen').textContent=SEGMENT_SECONDS+' Sekunden';setTimer(SEGMENT_SECONDS);
-  try{$('trainName').textContent=(currentMeta&&sourceKind==='lib'?currentMeta.name+' · ':'')+'ab '+formatTime(currentPart*SEGMENT_SECONDS)+' von '+formatTime(sourceDuration);$('hfName').textContent=currentMeta&&sourceKind==='lib'?currentMeta.name:'Echo';savePos(currentPart*SEGMENT_SECONDS,false)}catch(e){}
+  try{$('trainName').textContent=(currentMeta&&sourceKind==='lib'?currentMeta.name+' · ':'')+'ab '+formatTime(partStart(currentPart))+' von '+formatTime(sourceDuration);$('hfName').textContent=currentMeta&&sourceKind==='lib'?currentMeta.name:'Echo';savePos(partStart(currentPart),false)}catch(e){}
   syncVoice();
   try{$('compareCard').classList.add('hidden');$('afterCard').classList.add('hidden');$('muteHint').classList.add('hidden');hideVoiceBtn();cmpResult=null;startCmpJob(token)}catch(e){}
   const steps=[playSource,
@@ -887,7 +902,7 @@ async function startTraining(part,opts={}){
   if(canRecord){try{setStage('Mikrofon wird vorbereitet');setStatus('Bitte erlaube Echo das Mikrofon, falls das iPhone fragt.');await ensureMic()}catch(e){}}
   runRound();
 }
-$('start').onclick=()=>{if(!sourceFile)return;let part=0;if(sourceKind==='lib'&&currentMeta&&!currentMeta.done)part=Math.floor((currentMeta.pos||0)/SEGMENT_SECONDS);startTraining(part)};
+$('start').onclick=()=>{if(!sourceFile)return;let pos=0;if(sourceKind==='lib'&&currentMeta&&!currentMeta.done)pos=currentMeta.pos||0;startTraining(partAt(pos))};
 $('startRound').onclick=()=>runRound();
 $('pauseBtn').onclick=()=>doPause();
 $('repeatBtn').onclick=()=>doRepeat();
@@ -909,21 +924,21 @@ function hfMode(){
   else{m.textContent=canRecord?'🎙 Mit Aufnahme: Original → Pause → Signalton → du sprichst → deine Stimme. Bildschirm muss dafür an bleiben.':'🎧 Ohne Mikrofon: nur Mitsprechen.';$('hfShadow').textContent='🎧 Nur Mitsprechen'}
   $('hfNote').classList.toggle('hidden',!shadowAuto);
 }
-function seekShadow(part){currentPart=Math.max(0,Math.min(parts-1,part));try{sourceAudio.currentTime=currentPart*SEGMENT_SECONDS}catch(e){}if(sourceAudio.paused){const p=sourceAudio.play();if(p&&p.catch)p.catch(()=>{})}shadowLabel();savePos(currentPart*SEGMENT_SECONDS,false)}
+function seekShadow(part){currentPart=Math.max(0,Math.min(parts-1,part));try{sourceAudio.currentTime=partStart(currentPart)}catch(e){}if(sourceAudio.paused){const p=sourceAudio.play();if(p&&p.catch)p.catch(()=>{})}shadowLabel();savePos(partStart(currentPart),false)}
 function shadowLabel(){const pl=`Stück ${currentPart+1} von ${parts}`;$('partLabel').textContent=pl;$('hfPart').textContent=pl;updateNext();setPauseUI()}
 function enterShadow(auto){
   if(shadow||!sessionActive)return;
   cancelRound();releaseMic();shadow=true;shadowAuto=!!auto;running=false;
-  try{sourceAudio.currentTime=currentPart*SEGMENT_SECONDS}catch(e){}
+  try{sourceAudio.currentTime=partStart(currentPart)}catch(e){}
   const go=()=>{const p=sourceAudio.play();if(p&&p.catch)p.catch(()=>{if(shadow&&sourceAudio.paused)setStatus('Tippe auf „▶ Weiter“, um abzuspielen.')})};
   go();setTimeout(()=>{if(shadow&&sourceAudio.paused&&!paused)go()},150); // eine abgebrochene Runde kann kurz danach noch pausieren
   setStage('Mitsprechen');setStatus('Sprich einfach mit. Kopfhörer-Taste: Pause · Vor: nächstes Stück · Zurück: Stück wiederholen.');
   shadowLabel();hfMode();
 }
 sourceAudio.addEventListener('timeupdate',()=>{
-  if(!shadow)return;const t=sourceAudio.currentTime||0,part=Math.min(parts-1,Math.floor(t/SEGMENT_SECONDS));
-  if(part!==currentPart){currentPart=part;shadowLabel();savePos(part*SEGMENT_SECONDS,false)}
-  setTimer((part+1)*SEGMENT_SECONDS-t,SEGMENT_SECONDS);
+  if(!shadow)return;const t=sourceAudio.currentTime||0,part=Math.min(parts-1,partOf(t));
+  if(part!==currentPart){currentPart=part;shadowLabel();savePos(partStart(part),false)}
+  setTimer(partEnd(part)-t,Math.max(1,partEnd(part)-partStart(part)));
 });
 sourceAudio.addEventListener('play',()=>{if(shadow)setPauseUI()});sourceAudio.addEventListener('pause',()=>{if(shadow)setPauseUI()});
 sourceAudio.addEventListener('ended',()=>{if(shadow){savePos(sourceDuration,true);finish()}});
@@ -978,12 +993,12 @@ function refreshSegUI(){
 // neue Stücklänge: Position in Sekunden bleibt gleich
 function changeSeg(sec,restart){
   sec=Math.max(1,Math.min(30,Math.round(sec)));if(sec===SEGMENT_SECONDS)return;
-  const at=sessionActive||running?currentPart*SEGMENT_SECONDS:(sourceAudio&&!sourceAudio.paused?sourceAudio.currentTime:(currentPart*SEGMENT_SECONDS));
-  SEGMENT_SECONDS=sec;calcParts();currentPart=Math.max(0,Math.min(parts-1,Math.floor((at+0.001)/sec)));
+  const at=sessionActive||running?partStart(currentPart):(sourceAudio&&!sourceAudio.paused?sourceAudio.currentTime:partStart(currentPart));
+  SEGMENT_SECONDS=sec;currentPart=partAt(at);   // Startstelle bleibt exakt
   if(sourceDuration){try{$('pvInfo').textContent=formatTime(sourceDuration)+', '+parts+' '+(parts===1?'Stück':'Stücke')+' à '+sec+' s'}catch(e){}}
   refreshSegUI();
   if(restart&&sessionActive&&!shadow&&running)runRound();
-  else if(sessionActive&&!running){try{$('trainName').textContent=(currentMeta&&sourceKind==='lib'?currentMeta.name+' · ':'')+'ab '+formatTime(currentPart*SEGMENT_SECONDS)+' von '+formatTime(sourceDuration)}catch(e){}}
+  else if(sessionActive&&!running){try{$('trainName').textContent=(currentMeta&&sourceKind==='lib'?currentMeta.name+' · ':'')+'ab '+formatTime(partStart(currentPart))+' von '+formatTime(sourceDuration)}catch(e){}}
 }
 async function saveAudioSeg(id,sec){
   try{const m=(currentMeta&&currentAudioId===id)?currentMeta:await libGet(id);if(!m)return;m.seg=sec;if(currentMeta&&currentAudioId===id)currentMeta.seg=sec;await libPut(Object.assign({},m))}catch(e){}
@@ -1226,7 +1241,7 @@ async function loadAudio(id){
   return m;
 }
 async function trainAudio(id,fromStart,hf){
-  try{libMsg('');const m=await loadAudio(id);const pos=fromStart||m.done?0:(m.pos||0);if(fromStart||m.done){m.done=false;m.pos=0}startTraining(Math.floor(pos/SEGMENT_SECONDS),{hf:!!hf})}
+  try{libMsg('');const m=await loadAudio(id);const pos=fromStart||m.done?0:(m.pos||0);if(fromStart||m.done){m.done=false;m.pos=0}startTraining(partAt(pos),{hf:!!hf})}
   catch(e){libMsg('Dieses Audio lässt sich gerade nicht öffnen ('+(e&&e.message||e)+').','err')}
 }
 async function listenAudio(id){

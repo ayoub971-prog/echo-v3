@@ -7,6 +7,7 @@ function env(){
   const E={stageToken:1,paused:false,running:true,S:{listen:3,recFree:true},SEGMENT_SECONDS:5,sourceDuration:20,currentPart:0,segLen:0,canRecord:true,CAP_TEXT:'',
     activeCtl:null,micBusy:false,micOwner:0,voiceHold:false,recorder:null,recTrack:null,recDoneSig:null,recVoiceOK:false,voiceEnabled:false,recNotice:'',holdTimer:null,micInfo:'',actx:null,
     pendingStages:[],btnShown:false,pauses:0,window:{},Blob,Math,Promise,setTimeout,clearTimeout};
+  E.partStart=p=>p*E.SEGMENT_SECONDS;E.partEnd=p=>Math.min(E.sourceDuration,(p+1)*E.SEGMENT_SECONDS);// v13 grid helpers
   E.$=()=>({set textContent(v){},classList:{toggle(){}}});
   E.sourceAudio={pause(){E.pauses++},set currentTime(v){}};E.myPlayback={pause(){}};
   E.elCtl=el=>({el});E.playMedia=()=>{};E.setStatus=()=>{};E.setStage=()=>{};E.finish=()=>{};

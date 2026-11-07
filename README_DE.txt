@@ -160,3 +160,13 @@ Regressionstests (Node.js, keine Zusatzpakete):
 node tests/listen-repeats.js index.html
 node tests/speaking-time.js index.html
 node tests/round-cancellation.js index.html
+
+STARTSTELLE (für Wartung durch Gemini/ChatGPT)
+- Regler r_pos in der Vorschau („📍 Ab welcher Stelle üben?“, mm:ss) + Knopf pvFromHere.
+  Er zeigt/setzt sourceAudio.currentTime (gleiche Stelle wie Vorschau und gespeicherte Position).
+- Stück-Raster mit Versatz segOffset: Stücke bei 0, segOffset, segOffset+S, … → Start exakt bei
+  der gewählten Sekunde (z. B. 83 s bei 7 s Stücken: 83, 90, 97 …; davor ein kurzes Stück 0–6 s).
+- partStart/partEnd/partOf/partAt sind die einzige Quelle für Stückgrenzen; neue Datei → segOffset=0.
+- CACHE in sw.js jetzt echo-shell-v13.
+
+Startstellen-Test: node tests/start-position.js index.html
